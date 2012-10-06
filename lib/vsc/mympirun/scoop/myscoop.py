@@ -33,6 +33,7 @@ import time
 import sys
 import os
 import subprocess  # TODO replace with run module
+from distutils.version import LooseVersion
 from threading import Thread
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
@@ -48,7 +49,7 @@ except:
                            InitImportException)
 
 ## requires Python 2.6 at least (str.format)
-if sys.version_info[0] == 2 and sys.version_info[1] < 6:
+if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
     _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
 
 class MYSCOOP(MPI):
@@ -76,6 +77,9 @@ class MYSCOOP(MPI):
         super(MYSCOOP, self).__init__(options, cmdargs, **kwargs)
 
         ## all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
+        ## TODO : actually decide on wheter they are otions or not and
+        ##   and change most of the code form self.scoop_X to self.options.scoop_X
+        ##  (except for executable and args)
         self.scoop_size = getattr(self.options, 'scoop_size', None)
         self.scoop_hosts = getattr(self.options, 'scoop_hosts', None)
         self.scoop_python = getattr(self.options, 'scoop_python', sys.executable)
