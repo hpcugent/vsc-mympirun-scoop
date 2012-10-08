@@ -32,10 +32,11 @@ from time import time
 from vsc.utils.run import run_simple
 from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, logToScreen, setLogLevelWarning, disableDefaultHandlers
 
+SCOOP_ENVIRONMENT_PREFIX = 'SCOOP'
+SCOOP_ENVIRONMENT_SEPARATOR = "_"
 
 NAME = 'simple_shell'
 _DEBUG = True
-
 
 def worker_run_simple(counter):
     """Execute the cmd
@@ -46,10 +47,6 @@ def worker_run_simple(counter):
     cmd_sanity = ["%s" % x for x in sys.argv[1:]]  ## ready to join
     ec, out = run_simple(' '.join(cmd_sanity))
     return  ec, out  ## return 1 item
-
-
-SCOOP_ENVIRONMENT_PREFIX = 'SCOOP'
-SCOOP_ENVIRONMENT_SEPARATOR = "_"
 
 def set_scoop_env(name, value):
     envname = "".join([SCOOP_ENVIRONMENT_PREFIX, SCOOP_ENVIRONMENT_SEPARATOR, name.upper()])
@@ -149,12 +146,8 @@ if __name__ == '__main__':
     logToFile(logfn, name=NAME)
     disableDefaultHandlers()
 
-
-
     if _DEBUG:
         setLogLevelDebug()
-
-
 
     ## disable stdout
 
