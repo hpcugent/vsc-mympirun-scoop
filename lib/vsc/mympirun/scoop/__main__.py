@@ -20,22 +20,19 @@ Some modifications for mympirun
     Stijn De Weirdt 2012
     It seems impossible to start it from the myscoop itself
 """
-from __future__ import print_function
-from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
-
-
-
 import sys
-if sys.version_info[0] == 2 and sys.version_info[1] < 7:
-    import backportRunpy as runpy
-else:
-    import runpy
 import os
 import functools
 import argparse
 import scoop
+from distutils.version import LooseVersion
+from __future__ import print_function
+from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
 
-
+if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.7'):
+    import backportRunpy as runpy
+else:
+    import runpy
 
 def make_parser():
     """scoop.bootstrap.__main__ parser"""
@@ -148,7 +145,6 @@ if __name__ == "__main__":
     _logger = getLogger(NAME)
     parser = make_parser()
     args = parser.parse_args()
-
 
     if args.debug:
         setLogLevelDebug()
