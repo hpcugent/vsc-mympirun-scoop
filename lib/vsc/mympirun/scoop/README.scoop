@@ -26,7 +26,7 @@
 usage: myscoop <executable> <args>
 supported options: myscoop -H (and check the SCOOP section)
 
-This directory contains some the myscoop module and someSCOOP example wrapper modules
+This directory contains the myscoop module and some SCOOP example wrapper modules
     myscoop : mympirun SCOOP support
     __main__ : SCOOP bootstrap
 

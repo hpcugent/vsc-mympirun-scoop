@@ -16,18 +16,21 @@
 #    License along with SCOOP. If not, see <http://www.gnu.org/licenses/>.
 #
 """
-Some modifications for mympirun
+Some modifications for mympirun to bootstrap.__main__
     Stijn De Weirdt 2012
     It seems impossible to start it from the myscoop itself
 """
+# from __future__ has to be first entry, otherwise SyntaxError
+from __future__ import print_function
+
 import sys
 import os
 import functools
 import argparse
 import scoop
 from distutils.version import LooseVersion
-from __future__ import print_function
 from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
+from vsc.utils import affinity
 
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.7'):
     import backportRunpy as runpy
@@ -71,7 +74,7 @@ def make_parser():
     ## custom options
     parser.add_argument('--startfrom', help="Change to this directory on start", action='store', default=None)
     parser.add_argument('--nice', help="Set this nice level", action='store', default=0, type=int)
-    parser.add_argument('--affinity', help="Use this cpu affinity", action='store', default=None, type=int)
+    parser.add_argument('--affinity', help="Use this cpu affinity", action='store', default=None)
 
     return parser
 
@@ -80,6 +83,27 @@ def main(args=None):
     if args is None:
         parser = make_parser()
         args = parser.parse_args()
+
+    if args.nice is not None:
+        try:
+            affinity.setpriority(int(args.nice))
+        except:
+            _logger.exception("main bootstrap failed nice/setpriority")
+
+    if args.affinity is not None:
+        try:
+            cs = affinity.cpu_set_t()
+            cs.convert_hr_bits("%s" % args.affinity)
+            affinity.sched_setaffinity(cs)
+        except:
+            _logger.exception("main bootstrap failed affinity/sched_setaffinity")
+
+    if args.startfrom is not None:
+        try:
+            os.chdir(args.startfrom)
+        except:
+            _logger.exception("main bootstrap failed startfrom/chdir")
+
 
     # Setup the scoop constants
     scoop.IS_ORIGIN = args.origin
@@ -153,7 +177,6 @@ if __name__ == "__main__":
     logToFile(log_fn)
 
     disableDefaultHandlers()
-
 
     try:
         main(args)

@@ -227,7 +227,7 @@ class MYSCOOP(MPI):
             self.log.raiseException("scoop_start_broker: remote code not implemented")
 
     def scoop_get_affinity(self, w_id, u_id):
-        """Determine the affinity of the scoop wroker
+        """Determine the affinity of the scoop worker
             w_id is the total workerid
             u_id is the index in the uniquehosts list
         """
