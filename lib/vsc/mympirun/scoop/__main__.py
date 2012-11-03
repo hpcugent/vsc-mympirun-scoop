@@ -22,7 +22,6 @@ Some modifications for mympirun to bootstrap.__main__
 """
 # from __future__ has to be first entry, otherwise SyntaxError
 from __future__ import print_function
-
 import sys
 import os
 import functools
