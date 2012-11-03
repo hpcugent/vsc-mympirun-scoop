@@ -29,8 +29,8 @@ import functools
 import argparse
 import scoop
 from distutils.version import LooseVersion
-from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
 from vsc.utils import affinity
+from vsc.mympirun.scoop.worker_utils import set_scoop_env, make_worker_log
 
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.7'):
     import backportRunpy as runpy
@@ -94,6 +94,7 @@ def main(args=None):
         try:
             cs = affinity.cpu_set_t()
             cs.convert_hr_bits("%s" % args.affinity)
+            cs.set_bits()
             affinity.sched_setaffinity(cs)
         except:
             _logger.exception("main bootstrap failed affinity/sched_setaffinity")
@@ -166,17 +167,12 @@ def main(args=None):
 
 if __name__ == "__main__":
     NAME = "MYSCOOPBOOTSTRAP"
-    _logger = getLogger(NAME)
+
     parser = make_parser()
     args = parser.parse_args()
 
-    if args.debug:
-        setLogLevelDebug()
-    log_fn = "/tmp/scoop_%s.log" % args.workerName
-    ## TODO: touch and check ownership/permission
-    logToFile(log_fn)
-
-    disableDefaultHandlers()
+    _logger = make_worker_log(NAME, debug=args.debug, logfn_name=args.workerName)
+    set_scoop_env('worker_name', args.workerName)
 
     try:
         main(args)

@@ -22,16 +22,41 @@
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
 ##
+"""
+SCOOP piCalc exmaple module
+"""
 
-usage: myscoop <executable> <args>
-supported options: myscoop -H (and check the SCOOP section)
+NAME = 'SCOOP_piCalc'
 
-This directory contains the myscoop module and some SCOOP example wrapper modules
-    myscoop : mympirun SCOOP support
-    __main__ : SCOOP bootstrap
 
-    picalc : SCOOP piCalc demo (eg myscoop --sched=local --scoop_module=picalc 100 100 # arg1 = nr_batches, arg2 = batch_size )
-    simple_shell : run command, return (ec,output); has SCOOP_COUNTER environment variable
-        arg1 is checked for [start:]stop[:step] to determine number of runs
-        known issue: lots of output can cause a hang (eg dmesg won't work)
-        eg myscoop --sched=local 100:200 echo '\\\$SCOOP_COUNTER'
+from math import hypot
+from random import random
+from scoop import futures
+from time import time
+
+# A range is used in this function for python3. If you are using python2, a
+# xrange might be more efficient.
+def test(tries):
+    return sum(hypot(random(), random()) < 1 for i in range(tries))
+
+# Calculates pi with a Monte-Carlo method. This function calls the function
+# test "n" times with an argument of "t". Scoop dispatches these
+# functions interactively accross the available ressources.
+def calcPi(workers, tries):
+    expr = futures.map(test, [tries] * workers)
+    piValue = 4. * sum(expr) / float(workers * tries)
+    return piValue
+
+
+if __name__ == '__main__':
+    import sys
+    nr_batches = 3000
+    batch_size = 5000
+
+    try:
+        nr_batches = int(sys.argv[1])
+        batch_size = int(sys.argv[2])
+    except:
+        pass
+
+    print "PI=%f (in nr_batches=%d,batch_size=%d)" % (calcPi(nr_batches, batch_size), nr_batches, batch_size)

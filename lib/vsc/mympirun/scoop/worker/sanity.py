@@ -22,16 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
 ##
-
-usage: myscoop <executable> <args>
-supported options: myscoop -H (and check the SCOOP section)
-
-This directory contains the myscoop module and some SCOOP example wrapper modules
-    myscoop : mympirun SCOOP support
-    __main__ : SCOOP bootstrap
-
-    picalc : SCOOP piCalc demo (eg myscoop --sched=local --scoop_module=picalc 100 100 # arg1 = nr_batches, arg2 = batch_size )
-    simple_shell : run command, return (ec,output); has SCOOP_COUNTER environment variable
-        arg1 is checked for [start:]stop[:step] to determine number of runs
-        known issue: lots of output can cause a hang (eg dmesg won't work)
-        eg myscoop --sched=local 100:200 echo '\\\$SCOOP_COUNTER'
+"""
+Small test to print some execution details and statistics
+"""
+from scoop import futures
