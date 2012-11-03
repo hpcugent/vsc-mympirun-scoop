@@ -70,7 +70,8 @@ class MYSCOOP(MPI):
                                           "slows down communications)", None, "store_true", False),
                                 'broker':("The externally routable broker hostname / ip "
                                           "(defaults to the local hostname)", "str", "store", None),
-                                'module':("Specifiy SCOOP worker module (to be imported or predefined in %s)" % SCOOP_WORKER_MODULE_DEFAULT_NS,
+                                'module':("Specifiy SCOOP worker module (to be imported or predefined in %s)" %
+                                          SCOOP_WORKER_MODULE_DEFAULT_NS,
                                           "str", "store", SCOOP_WORKER_MODULE_DEFAULT), # TODO provide list
                                 },
                      'prefix':'scoop',
