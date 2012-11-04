@@ -136,7 +136,7 @@ class MYSCOOP(MPI):
                 __import__(module_name)
             except:
                 self.log.debug("_get_module: import module_name %s failed" % (module_name))
-                return module_fn
+                return None
 
             try:
                 module_fn = sys.modules[module_name].__file__.rsplit('.', 1)[0]

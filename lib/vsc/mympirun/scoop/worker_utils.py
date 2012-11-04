@@ -25,7 +25,9 @@
 """
 A collection of functions and constants to use within worker modules
 """
-import os, sys
+import os
+import stat
+import sys
 from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
 
 SCOOP_ENVIRONMENT_PREFIX = 'SCOOP'
@@ -41,7 +43,6 @@ def make_worker_log(name, debug=False, logfn_name=None, disable_defaulthandlers=
         setLogLevelDebug()
 
     logToFile(logfn, name=name)
-    import stat
     os.chmod(logfn, stat.S_IRUSR | stat.S_IWUSR)
 
     if disable_defaulthandlers:
