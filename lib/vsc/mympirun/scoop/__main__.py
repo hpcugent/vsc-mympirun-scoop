@@ -172,6 +172,7 @@ if __name__ == "__main__":
 
     _logger = make_worker_log(NAME, debug=args.debug, logfn_name=args.workerName)
     set_scoop_env('worker_name', args.workerName)
+    set_scoop_env('worker_origin', int(args.origin))
 
     try:
         main(args)

@@ -25,14 +25,11 @@
 """
 SCOOP piCalc exmaple module
 """
-
-NAME = 'SCOOP_piCalc'
-
-
 from math import hypot
 from random import random
 from scoop import futures
-from time import time
+
+NAME = 'SCOOP_piCalc'
 
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
