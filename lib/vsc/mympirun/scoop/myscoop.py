@@ -59,7 +59,8 @@ class MYSCOOP(MPI):
     SCOOP_WORKER_DIGITS = 5 ## 100k workers
     ## this module used to be "scoop.bootstrap.__main__"
     SCOOP_BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
-    SCOOP_WORKER_MODULE = 'run_simple_shell'
+    SCOOP_WORKER_MODULE_DEFAULT_NS = 'vsc.mympirun.scoop.worker'
+    SCOOP_WORKER_MODULE_DEFAULT = 'simple_shell'
 
     _mpiscriptname_for = ['myscoop']
 
@@ -69,8 +70,9 @@ class MYSCOOP(MPI):
                                           "slows down communications)", None, "store_true", False),
                                 'broker':("The externally routable broker hostname / ip "
                                           "(defaults to the local hostname)", "str", "store", None),
-                                'module':("Use one of mympirun prepared SCOOP worker modules",
-                                          "str", "store", SCOOP_WORKER_MODULE), # TODO provide list
+                                'module':("Specifiy SCOOP worker module (to be imported or predefined in %s)" %
+                                          SCOOP_WORKER_MODULE_DEFAULT_NS,
+                                          "str", "store", SCOOP_WORKER_MODULE_DEFAULT), # TODO provide list
                                 },
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
@@ -90,7 +92,7 @@ class MYSCOOP(MPI):
         exe = allargs.pop(0)
         self.scoop_executable = getattr(self.options, 'scoop_executable', exe)
         self.scoop_args = getattr(self.options, 'scoop_args', allargs)
-        self.scoop_module = getattr(self.options, 'scoop_module', self.SCOOP_WORKER_MODULE)
+        self.scoop_module = getattr(self.options, 'scoop_module', self.SCOOP_WORKER_MODULE_DEFAULT)
 
         self.scoop_nice = getattr(self.options, 'scoop_nice', 0)
         self.scoop_affinity = getattr(self.options, 'scoop_affinity', None)
@@ -125,22 +127,36 @@ class MYSCOOP(MPI):
 
     def scoop_make_executable(self):
         """Create the proper scoop module to launch"""
-        if not self.scoop_executable.endswith('.py'):
-            self.scoop_args = [self.scoop_executable] + self.scoop_args
-
-
-            module_name = 'vsc.mympirun.scoop.%s' % self.scoop_module
+        def _get_module(module_name):
+            """Get the module basename
+                returns None if failed
+            """
+            module_fn = None
             try:
                 __import__(module_name)
             except:
-                self.log.raiseException("scoop_make_executable: failed to import %s" % module_name)
+                self.log.debug("_get_module: import module_name %s failed" % (module_name))
+                return None
 
             try:
                 module_fn = sys.modules[module_name].__file__.rsplit('.', 1)[0]
             except:
-                self.log.raiseException(("scoop_make_executable: failed to locate module name %s in sys.modules "
-                                         "(only names with scoop shown) %s") % (module_name,
-                                        [x for x in sys.modules.keys() if 'scoop' in x]))
+                self.log.raiseException("_get_module: import module_name %s succesful, can't locate file" %
+                                        (module_name))
+
+            self.log.debug("_get_module: module_name %s returned module_fn %s" % (module_name, module_fn))
+            return module_fn
+
+        if not self.scoop_executable.endswith('.py'):
+            self.scoop_args = [self.scoop_executable] + self.scoop_args
+
+            module_fn = _get_module(self.scoop_module)
+            if module_fn is None:
+                module_fn = _get_module('%s.%s' % (self.SCOOP_WORKER_MODULE_DEFAULT_NS, self.scoop_module))
+
+                if module_fn is None:
+                    self.log.raiseException("scoop_make_executable: failed to locate module %s (default NS %s)" %
+                                            (self.scoop_module, self.SCOOP_WORKER_MODULE_DEFAULT_NS))
 
             ## some mode example runs are in vsc.mympirun.scoop
             self.scoop_executable = "%s.py" % module_fn
@@ -190,7 +206,7 @@ class MYSCOOP(MPI):
         else:
             cmd_affinity = ["--affinity", affinity]
         c = [self.scoop_python, '-u',
-             "-m ", self.SCOOP_BOOTSTRAP_MODULE,
+             "-m", self.SCOOP_BOOTSTRAP_MODULE,
              "--workerName", "worker{0:0{width}}".format(w_id, width=self.SCOOP_WORKER_DIGITS),
              "--brokerName", "broker",
              "--brokerAddress", "tcp://{brokerHostname}:{brokerPort}".format(
@@ -227,7 +243,7 @@ class MYSCOOP(MPI):
             self.log.raiseException("scoop_start_broker: remote code not implemented")
 
     def scoop_get_affinity(self, w_id, u_id):
-        """Determine the affinity of the scoop wroker
+        """Determine the affinity of the scoop worker
             w_id is the total workerid
             u_id is the index in the uniquehosts list
         """
