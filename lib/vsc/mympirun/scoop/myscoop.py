@@ -243,11 +243,12 @@ class MYSCOOP(MPI):
             ##  (better yet, lets assume it is running and try to guess the ports)
             self.log.raiseException("scoop_start_broker: remote code not implemented")
 
-    def scoop_get_affinity(self, w_id, u_id):
+    def scoop_get_affinity(self, u_id, w_id):
         """Determine the affinity of the scoop worker
             w_id is the total workerid
             u_id is the index in the uniquehosts list
         """
+        self.log.debug("scoop_get_affinity: u_id %s w_id %s" % (u_id, w_id))
         return u_id  # TODO: assumes 1 core per proc. what with hybrid etc etc
 
     def scoop_launch(self):
