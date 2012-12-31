@@ -39,19 +39,23 @@ else:
 def make_parser():
     """scoop.bootstrap.__main__ parser"""
     parser = argparse.ArgumentParser(description='Starts the executable.',
-                                     prog="{0} -m scoop.bootstrap".format(sys.executable))
+                                     prog=("{0} -m scoop.bootstrap"
+                                           ).format(sys.executable))
 
-    parser.add_argument('--origin', help="To specify that the worker is the origin",
+    parser.add_argument('--origin',
+                        help="To specify that the worker is the origin",
                         action='store_true')
     parser.add_argument('--workerName', help="The name of the worker",
                         default="worker0")
     parser.add_argument('--brokerName', help="The name of the broker",
                         default="broker")
     parser.add_argument('--brokerAddress',
-                        help="The tcp address of the broker written tcp://address:port",
+                        help="The tcp address of the broker written "
+                             "tcp://address:port",
                         default="")
     parser.add_argument('--metaAddress',
-                        help="The tcp address of the info written tcp://address:port",
+                        help="The tcp address of the info written "
+                             "tcp://address:port",
                         default="")
     parser.add_argument('--size',
                         help="The size of the worker pool",
@@ -61,8 +65,8 @@ def make_parser():
                         help="Activate the debug",
                         action='store_true')
     parser.add_argument('--profile',
-                         help="Activate the profiler",
-                         action='store_true')
+                        help="Activate the profiler",
+                        action='store_true')
     parser.add_argument('executable',
                         nargs=1,
                         help='The executable to start with scoop')
@@ -70,6 +74,9 @@ def make_parser():
                         nargs=argparse.REMAINDER,
                         help='The arguments to pass to the executable',
                         default=[])
+    parser.add_argument('--echoGroup',
+                        help="Echo the process Group ID before launch",
+                        action='store_true')
     ## custom options
     parser.add_argument('--startfrom', help="Change to this directory on start", action='store', default=None)
     parser.add_argument('--nice', help="Set this nice level", action='store', default=0, type=int)
@@ -105,7 +112,7 @@ def main(args=None):
             _logger.exception("main bootstrap failed startfrom/chdir")
 
 
-    # Setup the scoop constants
+    # Setup the SCOOP constants
     scoop.IS_ORIGIN = args.origin
     scoop.WORKER_NAME = args.workerName.encode()
     scoop.BROKER_NAME = args.brokerName.encode()
@@ -113,8 +120,9 @@ def main(args=None):
     scoop.META_ADDRESS = args.metaAddress.encode()
     scoop.SIZE = args.size
     scoop.DEBUG = args.debug
-    scoop.IS_ORIGIN = args.origin
     scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
+    # custom
+    scoop.IS_ORIGIN = args.origin
     scoop.VALID = True
 
     _logger.debug("main: workerName %s executable %s args %s" % (args.workerName, args.executable, args.args))
@@ -123,10 +131,11 @@ def main(args=None):
     profile = True if args.profile else False
 
     # get the module path in the Python path
-    md_path = os.path.join(os.getcwd(), os.path.dirname(args.executable[0]))
+    md_path = os.path.join(os.getcwd(), 
+                           os.path.dirname(args.executable[0])
+                           )
     if not md_path in sys.path:
         sys.path.append(md_path)
-
 
     # temp values to keep the args
     executable = args.executable[0]
@@ -135,9 +144,24 @@ def main(args=None):
     sys.argv = sys.argv[:1]
     sys.argv += args.args
 
+    # Show the current process Group ID if asked
+    if args.echoGroup:
+        sys.stdout.write(str(os.getpgrp()) + "\n")
+        sys.stdout.flush()
+
     # import the user module into the global dictionary
     # equivalent to from {user_module} import *
-    user_module = __import__(os.path.basename(executable)[:-3])
+    try:
+        user_module = __import__(os.path.basename(executable)[:-3])
+    except ImportError as e:
+        # Could not find 
+        sys.stderr.write('{0}\nIn path: {1}\n'.format(
+            str(e),
+            sys.path[-1],
+            )
+        )
+        sys.stderr.flush()
+        sys.exit(-1)
     try:
         attrlist = user_module.__all__
     except AttributeError:
@@ -145,26 +169,34 @@ def main(args=None):
     for attr in attrlist:
         globals()[attr] = getattr(user_module, attr)
 
+    # Start the user program
+    from scoop import futures
     if not profile:
-        # Start the user program
-        from scoop import futures
-        futures._startup(functools.partial(runpy.run_path,
-                                       executable,
-                                       init_globals=globals(),
-                                       run_name="__main__"))
+        futures._startup(
+            functools.partial(
+                runpy.run_path,
+                executable,
+                init_globals=globals(),
+                run_name="__main__"
+            )
+        )
     else:
-        from scoop import futures
         import cProfile
-        cProfile.run("""futures._startup(functools.partial(runpy.run_path,
-                                       executable,
-                                       init_globals=globals(),
-                                       run_name="__main__"))""",
-                                       scoop.WORKER_NAME)
+        cProfile.run("""futures._startup(
+                functools.partial(
+                    runpy.run_path,
+                   "{0}",
+                   init_globals=globals(),
+                   run_name="__main__",
+                )
+            )""".format(executable),
+            scoop.WORKER_NAME)
 
+    # custom
     _logger.debug("main: bootstrap main ended")
-
-
+    
 if __name__ == "__main__":
+    # custom
     NAME = "MYSCOOPBOOTSTRAP"
 
     parser = make_parser()
