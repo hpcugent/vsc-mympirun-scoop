@@ -77,7 +77,7 @@ def make_parser():
     parser.add_argument('--echoGroup',
                         help="Echo the process Group ID before launch",
                         action='store_true')
-    ## custom options
+    # # custom options
     parser.add_argument('--startfrom', help="Change to this directory on start", action='store', default=None)
     parser.add_argument('--nice', help="Set this nice level", action='store', default=0, type=int)
     parser.add_argument('--affinity', help="Use this cpu affinity", action='store', default=None)
@@ -121,9 +121,6 @@ def main(args=None):
     scoop.SIZE = args.size
     scoop.DEBUG = args.debug
     scoop.worker = (scoop.WORKER_NAME, scoop.BROKER_NAME)
-    # custom
-    scoop.IS_ORIGIN = args.origin
-    scoop.VALID = True
 
     _logger.debug("main: workerName %s executable %s args %s" % (args.workerName, args.executable, args.args))
     _logger.debug("main: startfrom %s nice %s affinity %s" % (args.startfrom, args.nice, args.affinity))
@@ -131,7 +128,7 @@ def main(args=None):
     profile = True if args.profile else False
 
     # get the module path in the Python path
-    md_path = os.path.join(os.getcwd(), 
+    md_path = os.path.join(os.getcwd(),
                            os.path.dirname(args.executable[0])
                            )
     if not md_path in sys.path:
@@ -154,7 +151,7 @@ def main(args=None):
     try:
         user_module = __import__(os.path.basename(executable)[:-3])
     except ImportError as e:
-        # Could not find 
+        # Could not find
         sys.stderr.write('{0}\nIn path: {1}\n'.format(
             str(e),
             sys.path[-1],
@@ -194,7 +191,7 @@ def main(args=None):
 
     # custom
     _logger.debug("main: bootstrap main ended")
-    
+
 if __name__ == "__main__":
     # custom
     NAME = "MYSCOOPBOOTSTRAP"

@@ -26,37 +26,55 @@
 """
 SCOOP support
     http://code.google.com/p/scoop/
-    based on 0.5.3 code
+    based on 0.6.0B code
 
 This is not a MPI implementation at all.
 
 Code is very lightweight.
 """
-import time
-import sys
+import itertools
 import os
+import socket
 import subprocess  # TODO replace with run module
+import sys
+import time
 from distutils.version import LooseVersion
 from threading import Thread
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
 
+
 from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile
 from vsc.utils.run import RunAsyncLoop
 _logger = getLogger("MYSCOOP")
+
+import signal
+
+try:
+    signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
+except AttributeError:
+    # SIGQUIT doesn't exist on Windows
+    signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
+
+## requires Python 2.6 at least (str.format)
+if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
+    _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
+
 
 try:
     import scoop
 except:
     _logger.raiseException("MYSCOOP requires the scoop module and scoop requires (amongst others) pyzmq",
                            InitImportException)
+from scoop.__main__ import ScoopApp
 
-## requires Python 2.6 at least (str.format)
-if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
-    _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
+class MyScoopApp(ScoopApp):
+    
 
 class MYSCOOP(MPI):
     """Re-implement the launchScoop class from scoop.__main__"""
+    SCOOP_APP = MyScoopApp
+
     SCOOP_WORKER_DIGITS = 5 ## 100k workers
     ## this module used to be "scoop.bootstrap.__main__"
     SCOOP_BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
@@ -82,15 +100,18 @@ class MYSCOOP(MPI):
         super(MYSCOOP, self).__init__(options, cmdargs, **kwargs)
 
         ## all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
-        ## TODO : actually decide on wheter they are otions or not and
+        # # TODO : actually decide on wether they are options or not and
         ##   and change most of the code form self.scoop_X to self.options.scoop_X
         ##  (except for executable and args)
-        self.scoop_size = getattr(self.options, 'scoop_size', None)
-        self.scoop_hosts = getattr(self.options, 'scoop_hosts', None)
-        self.scoop_python = getattr(self.options, 'scoop_python', sys.executable)
 
         allargs = self.cmdargs[:]
         exe = allargs.pop(0)
+
+        self.scoop_size = getattr(self.options, 'scoop_size', None)
+        self.scoop_hosts = getattr(self.options, 'scoop_hosts', None)
+        self.scoop_python = getattr(self.options, 'scoop_python', sys.executable)
+        self.scoop_pythonpath = getattr(self.options, 'scoop_pythonpath', [os.environ.get('PYTHONPATH','')])
+
         self.scoop_executable = getattr(self.options, 'scoop_executable', exe)
         self.scoop_args = getattr(self.options, 'scoop_args', allargs)
         self.scoop_module = getattr(self.options, 'scoop_module', self.SCOOP_WORKER_MODULE_DEFAULT)
@@ -109,7 +130,15 @@ class MYSCOOP(MPI):
         self.scoop_origin = getattr(self.options, 'scoop_origin', False)
         self.scoop_debug = getattr(self.options, 'scoop_debug', self.options.debug)
 
+        if self.scoop_debug:
+            scoop_verbose=2
+        else:
+            scoop_verbose=1 # default loglevel is info
+        self.scoop_verbose = getattr(self.options, 'scoop_verbose', scoop_verbose)
+
         self.scoop_tunnel = getattr(self.options, 'scoop_tunnel', False)
+
+        self.scoop_profile = getattr(self.options, 'scoop_profile', False)
 
         self.scoop_remote = {}
         self.scoop_workers_free = None
@@ -184,19 +213,23 @@ class MYSCOOP(MPI):
         if self.scoop_infobroker is None:
             self.scoop_infobroker = self.scoop_broker
 
+
     def scoop_get_origin(self):
+        # TODO remove
         """origin"""
         if self.scoop_workers_free == 1:
             self.log.debug('scoop_get_origin: set origin on')
             return "--origin"
 
     def scoop_get_debug(self):
+        # TODO remove
         """debug"""
         if self.options.debug or self.scoop_debug:
             self.log.debug('scoop_get_debug: set debug on')
             return "--debug"
 
     def scoop_launch_foreign(self, w_id, affinity=None):
+        # TODO remove
         """Create the foreign launch command
             similar to __main__.launchForeign
                 assumes nodes can ssh into themself
@@ -227,6 +260,7 @@ class MYSCOOP(MPI):
 
 
     def scoop_start_broker(self):
+        # TODO remove
         """Starts a broker on random unoccupied port(s)"""
         from scoop.broker import Broker  # import here to avoid issues with bootstrap TODO move bootstrap
         if self.scoop_broker in self.uniquenodes:
@@ -244,6 +278,7 @@ class MYSCOOP(MPI):
             self.log.raiseException("scoop_start_broker: remote code not implemented")
 
     def scoop_get_affinity(self, u_id, w_id):
+        # TODO remove
         """Determine the affinity of the scoop worker
             w_id is the total workerid
             u_id is the index in the uniquehosts list
@@ -252,6 +287,8 @@ class MYSCOOP(MPI):
         return u_id  # TODO: assumes 1 core per proc. what with hybrid etc etc
 
     def scoop_launch(self):
+        # TODO remove
+        """replaced with scoop_run scoop_app.run()"""
         # Launching the local broker, repeat until it works
         self.log.debug("scoop_run: initialising local broker.")
         self.scoop_start_broker()
@@ -314,6 +351,8 @@ class MYSCOOP(MPI):
         return out
 
     def scoop_close(self):
+        # TODO remove
+        """replaced with scoop_run scoop_app.close()"""
         # Ensure everything is cleaned up on exit
         self.log.debug('scoop_close: destroying remote elements...')
         self.local_broker_process
@@ -336,17 +375,32 @@ class MYSCOOP(MPI):
         """Run the launcher"""
 
         ## previous scoop.__main__ main()
-        res = None
-        try:
-            res = self.scoop_launch()
-        except:
-            self.log.exception("scoop_run: failure in scoop_launch")
-        finally:
-            self.scoop_close()
+        hosts=[(nodename,len(list(group))) for nodename,group in itertools.groupby(self.scoop_hosts)]
 
-        ## write to stdout
-        if res is not None:
-            sys.stdout.write(res)
-            sys.stdout.flush()
+
+        scoop_app = self.SCOOP_APP(hosts,
+                                   self.scoop_size,
+                                   self.scoop_verbose,
+                                   self.scoop_python,
+                                   self.scoop_broker,
+                                   self.scoop_executable,
+                                   self.scoop_args,
+                                   self.scoop_tunnel,
+                                   None, # TODO args.log, deal with fancylogger later
+                                   self.scoop_path,
+                                   self.scoop_debug,
+                                   self.scoop_nice,
+                                   "other", # TODO check utils.getEnv(),
+                                   self.scoop_profile,
+                                   self.scoop_pythonpath[0]
+                                   )
+        try:
+            root_task_ec = scoop_app.run()
+            self.log.debug("scoop_run exited with exitcode %s"%root_task_ec)
+        except Exception as e:
+            self.log.exception('scoop_run: error while launching SCOOP subprocesses: {0}'.format(str(e)))
+        finally:
+            scoop_app.close()
+
 
 
