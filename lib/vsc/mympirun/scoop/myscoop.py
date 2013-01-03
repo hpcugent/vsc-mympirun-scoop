@@ -1,4 +1,4 @@
-##
+# #
 # Copyright 2012 Ghent University
 # Copyright 2012 Stijn De Weirdt
 #
@@ -22,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
-##
+# #
 """
 SCOOP support
     http://code.google.com/p/scoop/
@@ -50,13 +50,7 @@ _logger = getLogger("MYSCOOP")
 
 import signal
 
-try:
-    signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
-except AttributeError:
-    # SIGQUIT doesn't exist on Windows
-    signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
-
-## requires Python 2.6 at least (str.format)
+# # requires Python 2.6 at least (str.format)
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
     _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
 
@@ -67,16 +61,25 @@ except:
     _logger.raiseException("MYSCOOP requires the scoop module and scoop requires (amongst others) pyzmq",
                            InitImportException)
 from scoop.__main__ import ScoopApp
+from scoop import utils
+
+try:
+    signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
+except AttributeError:
+    # SIGQUIT doesn't exist on Windows
+    signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
+
+
 
 class MyScoopApp(ScoopApp):
-    
+    pass
 
 class MYSCOOP(MPI):
     """Re-implement the launchScoop class from scoop.__main__"""
     SCOOP_APP = MyScoopApp
 
-    SCOOP_WORKER_DIGITS = 5 ## 100k workers
-    ## this module used to be "scoop.bootstrap.__main__"
+    SCOOP_WORKER_DIGITS = 5  # # 100k workers
+    # # this module used to be "scoop.bootstrap.__main__"
     SCOOP_BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
     SCOOP_WORKER_MODULE_DEFAULT_NS = 'vsc.mympirun.scoop.worker'
     SCOOP_WORKER_MODULE_DEFAULT = 'simple_shell'
@@ -91,7 +94,7 @@ class MYSCOOP(MPI):
                                           "(defaults to the local hostname)", "str", "store", None),
                                 'module':("Specifiy SCOOP worker module (to be imported or predefined in %s)" %
                                           SCOOP_WORKER_MODULE_DEFAULT_NS,
-                                          "str", "store", SCOOP_WORKER_MODULE_DEFAULT), # TODO provide list
+                                          "str", "store", SCOOP_WORKER_MODULE_DEFAULT),  # TODO provide list
                                 },
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
@@ -99,10 +102,10 @@ class MYSCOOP(MPI):
     def __init__(self, options, cmdargs, **kwargs):
         super(MYSCOOP, self).__init__(options, cmdargs, **kwargs)
 
-        ## all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
+        # # all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
         # # TODO : actually decide on wether they are options or not and
-        ##   and change most of the code form self.scoop_X to self.options.scoop_X
-        ##  (except for executable and args)
+        # #   and change most of the code form self.scoop_X to self.options.scoop_X
+        # #  (except for executable and args)
 
         allargs = self.cmdargs[:]
         exe = allargs.pop(0)
@@ -110,7 +113,7 @@ class MYSCOOP(MPI):
         self.scoop_size = getattr(self.options, 'scoop_size', None)
         self.scoop_hosts = getattr(self.options, 'scoop_hosts', None)
         self.scoop_python = getattr(self.options, 'scoop_python', sys.executable)
-        self.scoop_pythonpath = getattr(self.options, 'scoop_pythonpath', [os.environ.get('PYTHONPATH','')])
+        self.scoop_pythonpath = getattr(self.options, 'scoop_pythonpath', [os.environ.get('PYTHONPATH', '')])
 
         self.scoop_executable = getattr(self.options, 'scoop_executable', exe)
         self.scoop_args = getattr(self.options, 'scoop_args', allargs)
@@ -120,7 +123,7 @@ class MYSCOOP(MPI):
         self.scoop_affinity = getattr(self.options, 'scoop_affinity', None)
         self.scoop_path = getattr(self.options, 'scoop_path', os.getcwd())
 
-        ## default broker is first of unique nodes ?
+        # # default broker is first of unique nodes ?
         self.scoop_broker = getattr(self.options, 'scoop_broker', None)
         self.scoop_brokerport = getattr(self.options, 'scoop_brokerport', None)
 
@@ -131,9 +134,9 @@ class MYSCOOP(MPI):
         self.scoop_debug = getattr(self.options, 'scoop_debug', self.options.debug)
 
         if self.scoop_debug:
-            scoop_verbose=2
+            scoop_verbose = 2
         else:
-            scoop_verbose=1 # default loglevel is info
+            scoop_verbose = 1  # default loglevel is info
         self.scoop_verbose = getattr(self.options, 'scoop_verbose', scoop_verbose)
 
         self.scoop_tunnel = getattr(self.options, 'scoop_tunnel', False)
@@ -188,14 +191,14 @@ class MYSCOOP(MPI):
                     self.log.raiseException("scoop_make_executable: failed to locate module %s (default NS %s)" %
                                             (self.scoop_module, self.SCOOP_WORKER_MODULE_DEFAULT_NS))
 
-            ## some mode example runs are in vsc.mympirun.scoop
+            # # some mode example runs are in vsc.mympirun.scoop
             self.scoop_executable = "%s.py" % module_fn
             self.log.debug("scoop_make_executable: from scoop_module %s executable %s args %s" % (
                             self.scoop_module, self.scoop_executable, self.scoop_args))
 
     def scoop_prepare(self):
         """Prepare the scoop parameters and commands"""
-        ## self.mpinodes is the node list to use
+        # # self.mpinodes is the node list to use
         if self.scoop_broker is None:
             if self.mpdboot_localhost_interface is None:
                 self.mpdboot_set_localhost_interface()
@@ -207,7 +210,7 @@ class MYSCOOP(MPI):
             self.scoop_hosts = self.mpinodes
 
         if self.scoop_broker is None:
-            ## default broker is first of unique nodes ?
+            # # default broker is first of unique nodes ?
             self.scoop_broker = self.uniquenodes[0]
 
         if self.scoop_infobroker is None:
@@ -272,9 +275,9 @@ class MYSCOOP(MPI):
             self.local_broker_process.daemon = True
             self.local_broker_process.start()
         else:
-            ## try to start it remotely ?
-            ## TODO: see if we can join an existing broker
-            ##  (better yet, lets assume it is running and try to guess the ports)
+            # # try to start it remotely ?
+            # # TODO: see if we can join an existing broker
+            # #  (better yet, lets assume it is running and try to guess the ports)
             self.log.raiseException("scoop_start_broker: remote code not implemented")
 
     def scoop_get_affinity(self, u_id, w_id):
@@ -318,7 +321,7 @@ class MYSCOOP(MPI):
                                     '-R {0}:127.0.0.1:{0}'.format(self.scoop_infoport)
                                     ]
                 print_bash_pgid = 'ps -o pgid= -p \$BASHPID'  # print bash group id to track it for kill
-                ## join all commands as background process
+                # # join all commands as background process
                 all_foreign_cmd = " ".join([" ".join(cmd + ['&']) for cmd in command])
                 bash_cmd = " ".join([print_bash_pgid, '&&', all_foreign_cmd])
 
@@ -374,29 +377,32 @@ class MYSCOOP(MPI):
     def scoop_run(self):
         """Run the launcher"""
 
-        ## previous scoop.__main__ main()
-        hosts=[(nodename,len(list(group))) for nodename,group in itertools.groupby(self.scoop_hosts)]
+        # # previous scoop.__main__ main()
 
 
-        scoop_app = self.SCOOP_APP(hosts,
-                                   self.scoop_size,
-                                   self.scoop_verbose,
-                                   self.scoop_python,
-                                   self.scoop_broker,
-                                   self.scoop_executable,
-                                   self.scoop_args,
-                                   self.scoop_tunnel,
-                                   None, # TODO args.log, deal with fancylogger later
-                                   self.scoop_path,
-                                   self.scoop_debug,
-                                   self.scoop_nice,
-                                   "other", # TODO check utils.getEnv(),
-                                   self.scoop_profile,
-                                   self.scoop_pythonpath[0]
-                                   )
+        scoop_app_args = [[(nodename, len(list(group))) for nodename, group in itertools.groupby(self.scoop_hosts)],
+                          self.scoop_size,
+                          self.scoop_verbose,
+                          [self.scoop_python],
+                          self.scoop_broker,
+                          [self.scoop_executable],
+                          self.scoop_args,
+                          self.scoop_tunnel,
+                          None,  # TODO args.log, deal with fancylogger later
+                          self.scoop_path,
+                          self.scoop_debug,
+                          self.scoop_nice,
+                          self.scoop_affinity,
+                          "other",  # TODO check utils.getEnv(),
+                          self.scoop_profile,
+                          self.scoop_pythonpath[0]
+                          ]
+        self.log.debug("scoop_run: scoop_app class %s args %s" % (self.SCOOP_APP.__name__, scoop_app_args))
+
+        scoop_app = self.SCOOP_APP(*scoop_app_args)
         try:
             root_task_ec = scoop_app.run()
-            self.log.debug("scoop_run exited with exitcode %s"%root_task_ec)
+            self.log.debug("scoop_run exited with exitcode %s" % root_task_ec)
         except Exception as e:
             self.log.exception('scoop_run: error while launching SCOOP subprocesses: {0}'.format(str(e)))
         finally:
