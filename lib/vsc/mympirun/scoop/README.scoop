@@ -36,4 +36,4 @@ This directory contains the myscoop module and some SCOOP example wrapper module
         simple_shell : run command, return (ec,output); has SCOOP_COUNTER environment variable
             arg1 is checked for [start:]stop[:step] to determine number of runs
             known issue: lots of output can cause a hang (eg dmesg won't work)
-            eg myscoop --sched=local 100:200 echo '\\\$SCOOP_COUNTER'
+            eg myscoop --sched=local 100:200 echo '$SCOOP_COUNTER'

@@ -34,8 +34,14 @@ NAME = 'SCOOP_piCalc'
 
 # A range is used in this function for python3. If you are using python2, a
 # xrange might be more efficient.
+try:
+    range_fn = xrange
+except:
+    range_fn = range
+
+
 def test(tries):
-    return sum(hypot(random(), random()) < 1 for i in range(tries))
+    return sum(hypot(random(), random()) < 1 for i in range_fn(tries))
 
 # Calculates pi with a Monte-Carlo method. This function calls the function
 # test "n" times with an argument of "t". Scoop dispatches these

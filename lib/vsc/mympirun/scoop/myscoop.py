@@ -120,7 +120,7 @@ class MYSCOOP(MPI):
         self.scoop_module = getattr(self.options, 'scoop_module', self.SCOOP_WORKER_MODULE_DEFAULT)
 
         self.scoop_nice = getattr(self.options, 'scoop_nice', 0)
-        self.scoop_affinity = getattr(self.options, 'scoop_affinity', None)
+        self.scoop_affinity = getattr(self.options, 'scoop_affinity', 'simplesinglecoreworker')
         self.scoop_path = getattr(self.options, 'scoop_path', os.getcwd())
 
         # # default broker is first of unique nodes ?
@@ -141,7 +141,7 @@ class MYSCOOP(MPI):
 
         self.scoop_tunnel = getattr(self.options, 'scoop_tunnel', False)
 
-        self.scoop_profile = getattr(self.options, 'scoop_profile', False)
+        self.scoop_profile = getattr(self.options, 'scoop_profile', True)
 
         self.scoop_remote = {}
         self.scoop_workers_free = None
@@ -230,149 +230,6 @@ class MYSCOOP(MPI):
         if self.options.debug or self.scoop_debug:
             self.log.debug('scoop_get_debug: set debug on')
             return "--debug"
-
-    def scoop_launch_foreign(self, w_id, affinity=None):
-        # TODO remove
-        """Create the foreign launch command
-            similar to __main__.launchForeign
-                assumes nodes can ssh into themself
-            w_id is the workerid
-        """
-        if affinity is None:
-            cmd_affinity = []
-        else:
-            cmd_affinity = ["--affinity", affinity]
-        c = [self.scoop_python, '-u',
-             "-m", self.SCOOP_BOOTSTRAP_MODULE,
-             "--workerName", "worker{0:0{width}}".format(w_id, width=self.SCOOP_WORKER_DIGITS),
-             "--brokerName", "broker",
-             "--brokerAddress", "tcp://{brokerHostname}:{brokerPort}".format(
-                                        brokerHostname=self.scoop_broker,
-                                        brokerPort=self.scoop_brokerport),
-             "--metaAddress", "tcp://{infobrokerHostname}:{infoPort}".format(
-                                        infobrokerHostname=self.scoop_infobroker,
-                                        infoPort=self.scoop_infoport),
-             "--size", str(self.scoop_size),
-             "--startfrom", self.scoop_path,
-             "--nice", self.scoop_nice,
-             self.scoop_get_origin(),
-             self.scoop_get_debug(),
-             ] + cmd_affinity + [self.scoop_executable] + self.scoop_args
-        self.log.debug("scoop_launch_foreign: command c %s" % c)
-        return ["%s" % x for x in c if (x is not None) and (len("%s" % x) > 0) ]
-
-
-    def scoop_start_broker(self):
-        # TODO remove
-        """Starts a broker on random unoccupied port(s)"""
-        from scoop.broker import Broker  # import here to avoid issues with bootstrap TODO move bootstrap
-        if self.scoop_broker in self.uniquenodes:
-            self.log.debug("scoop_start_broker: broker %s in current nodeset, starting locally (debug %s)" %
-                           (self.scoop_broker, self.scoop_debug))
-            self.local_broker = Broker(debug=self.scoop_debug)
-            self.scoop_brokerport, self.scoop_infoport = self.local_broker.getPorts()
-            self.local_broker_process = Thread(target=self.local_broker.run)
-            self.local_broker_process.daemon = True
-            self.local_broker_process.start()
-        else:
-            # # try to start it remotely ?
-            # # TODO: see if we can join an existing broker
-            # #  (better yet, lets assume it is running and try to guess the ports)
-            self.log.raiseException("scoop_start_broker: remote code not implemented")
-
-    def scoop_get_affinity(self, u_id, w_id):
-        # TODO remove
-        """Determine the affinity of the scoop worker
-            w_id is the total workerid
-            u_id is the index in the uniquehosts list
-        """
-        self.log.debug("scoop_get_affinity: u_id %s w_id %s" % (u_id, w_id))
-        return u_id  # TODO: assumes 1 core per proc. what with hybrid etc etc
-
-    def scoop_launch(self):
-        # TODO remove
-        """replaced with scoop_run scoop_app.run()"""
-        # Launching the local broker, repeat until it works
-        self.log.debug("scoop_run: initialising local broker.")
-        self.scoop_start_broker()
-        self.log.debug("scoop_run: local broker launched on brokerport {0}, infoport {1}"
-                      ".".format(self.scoop_brokerport, self.scoop_infoport))
-
-        # Launch the workers in mpitotalppn batches on each unique node
-        if self.scoop_workers_free is None:
-            self.scoop_workers_free = len(self.mpinodes)
-
-        shell = None
-        w_id = -1
-        for host in self.uniquenodes:
-            command = []
-            for n in range(min(self.scoop_workers_free, self.mpitotalppn)):
-                w_id += 1
-                affinity = self.scoop_get_affinity(n, w_id)
-                command.append(self.scoop_launch_foreign(w_id, affinity=affinity))
-                self.scoop_workers_free -= 1
-
-            # Launch every unique remote hosts at the same time
-            if len(command) != 0:
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no']
-                if self.scoop_tunnel:
-                    self.log.debug("run: adding ssh tunnels for broker and info port ")
-                    ssh_command += ['-R {0}:127.0.0.1:{0}'.format(self.scoop_brokerport),
-                                    '-R {0}:127.0.0.1:{0}'.format(self.scoop_infoport)
-                                    ]
-                print_bash_pgid = 'ps -o pgid= -p \$BASHPID'  # print bash group id to track it for kill
-                # # join all commands as background process
-                all_foreign_cmd = " ".join([" ".join(cmd + ['&']) for cmd in command])
-                bash_cmd = " ".join([print_bash_pgid, '&&', all_foreign_cmd])
-
-                full_cmd = ssh_command + [host, '"%s"' % bash_cmd]
-                self.log.debug("scoop_run: going to start subprocess %s" % (" ".join(full_cmd)))
-                shell = RunAsyncLoop(" ".join(full_cmd))
-                shell._run_pre()
-                self.scoop_remote[shell] = [host]
-            if self.scoop_workers_free == 0:
-                break
-
-        self.log.debug("scoop_run: started on %s remotes, free workers %s" % (len(self.scoop_remote), self.scoop_workers_free))
-
-        # Get group id from remote connections
-        for remote in self.scoop_remote.keys():
-            gid = remote._process.stdout.readline().strip()
-            self.scoop_remote[remote].append(gid)
-        self.log.debug("scoop_run: found remotes and pgid %s" % self.scoop_remote.values())
-
-        # Wait for the root program
-        # shell is last one, containing the origin
-        if shell is None:
-            self.log.raiseException("scoop_run: nothing started?")
-
-        self.log.debug("scoop_run: rootprocess output")
-        shell._wait_for_process()
-        ec, out = shell._run_post()
-        self.log.debug("scoop_run: rootprocess ended ec %s out %s" % (ec, out))
-
-        return out
-
-    def scoop_close(self):
-        # TODO remove
-        """replaced with scoop_run scoop_app.close()"""
-        # Ensure everything is cleaned up on exit
-        self.log.debug('scoop_close: destroying remote elements...')
-        self.local_broker_process
-
-        for data in self.scoop_remote.values():
-            if len(data) > 1:
-                host, pid = data
-                ssh_command = ['ssh', '-x', '-n', '-oStrictHostKeyChecking=no', host]
-                kill_cmd = "kill -9 -%s &>/dev/null" % pid  # kill -<level> -n : all processes in process group n are signaled.
-
-                self.log.debug("scoop_close: host %s kill %s" % (host, kill_cmd))
-                subprocess.Popen(ssh_command + ["bash", "-c", "'%s'" % kill_cmd]).wait()
-            else:
-                self.log.error('scoop_close: zombie process left')
-
-        self.log.info('scoop_close: finished destroying spawned subprocesses.')
-
 
     def scoop_run(self):
         """Run the launcher"""
