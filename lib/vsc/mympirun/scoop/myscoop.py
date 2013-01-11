@@ -61,6 +61,7 @@ except:
     _logger.raiseException("MYSCOOP requires the scoop module and scoop requires (amongst others) pyzmq",
                            InitImportException)
 from scoop.__main__ import ScoopApp
+from scoop.launch import Host
 from scoop import utils
 
 try:
@@ -70,9 +71,12 @@ except AttributeError:
     signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
 
 
+class MyHost(Host):
+    BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
 
 class MyScoopApp(ScoopApp):
-    pass
+    LAUNCH_HOST_CLASS = MyHost
+
 
 class MYSCOOP(MPI):
     """Re-implement the launchScoop class from scoop.__main__"""
