@@ -1,6 +1,6 @@
-# #
-# Copyright 2012 Ghent University
-# Copyright 2012 Stijn De Weirdt
+#
+# Copyright 2012-2013 Ghent University
+# Copyright 2012-2013 Stijn De Weirdt
 #
 # This file is part of VSC-tools,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -22,60 +22,85 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
-# #
+#
 """
 SCOOP support
     http://code.google.com/p/scoop/
-    based on 0.6.0B code
-
-This is not a MPI implementation at all.
-
-Code is very lightweight.
+    based on 0.6.0  code
 """
 import itertools
 import os
-import socket
-import subprocess  # TODO replace with run module
 import sys
-import time
+from collections import namedtuple
 from distutils.version import LooseVersion
-from threading import Thread
+from vsc.fancylogger import getLogger
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
 
-
-from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile
-from vsc.utils.run import RunAsyncLoop
 _logger = getLogger("MYSCOOP")
-
-import signal
 
 # # requires Python 2.6 at least (str.format)
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
     _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
-
 
 try:
     import scoop
 except:
     _logger.raiseException("MYSCOOP requires the scoop module and scoop requires (amongst others) pyzmq",
                            InitImportException)
+
 from scoop.__main__ import ScoopApp
 from scoop.launch import Host
-from scoop import utils
-
-try:
-    signal.signal(signal.SIGQUIT, utils.KeyboardInterruptHandler)
-except AttributeError:
-    # SIGQUIT doesn't exist on Windows
-    signal.signal(signal.SIGTERM, utils.KeyboardInterruptHandler)
-
 
 class MyHost(Host):
-    BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
+    BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.bootstrap'
+    LAUNCHING_ARGUMENTS = namedtuple(Host.LAUNCHING_ARGUMENTS.__name__,
+                                     list(Host.LAUNCHING_ARGUMENTS._fields) +
+                                     ['processcontrol', 'affinity']
+                                     )
+
+    def _WorkerCommand_bootstrap(self, worker):
+        # nice will be passed as argument
+        newworker = worker._replace(nice=None)  # worker is namedtuple instance
+        c = super(MyHost, self)._WorkerCommand_bootstrap(newworker)
+        return c
+
+    def _WorkerCommand_options(self, worker):
+        c = super(MyHost, self)._WorkerCommand_options(worker)
+        if worker.processcontrol is not None:
+            self.log.debug("WorkerCommand_options processcontrol %s" % worker.processcontrol)
+            c.extend(['--processcontrol', worker.processcontrol])
+            if worker.nice is not None:
+                self.log.debug("WorkerCommand_options nice %s" % worker.nice)
+                c.extend(['--nice', str(worker.nice)])
+            if worker.affinity is not None:
+                self.log.debug("WorkerCommand_options affinity %s" % worker.affinity)
+                c.extend(['--affinity', '{algorithm}:{total_workers_host}:{worker_idx_host}'.format(**worker.affinity)])
+        else:
+            if worker.nice is not None:
+                self.log.error("nice is set, but no processcontrol")
+            if worker.affinity is not None:
+                self.log.error("affinity is set, but no processcontrol")
+        return c
+
 
 class MyScoopApp(ScoopApp):
     LAUNCH_HOST_CLASS = MyHost
+
+    def __init__(self, *args):
+        args = list(args)  # args here is tuple, need to chaneg it (ie remove affintiy arg)
+        self.affinity = args.pop()  # last argument
+        self.processcontrol = args.pop()  # 2nd last argument
+        super(MyScoopApp, self).__init__(*args)
+
+    def _addWorker_args(self, workerinfo):
+        args, kwargs = super(MyScoopApp, self)._addWorker_args(workerinfo)
+        # tuple with lots of info
+        kwargs['processcontrol'] = self.processcontrol
+        affinity = workerinfo.copy()
+        affinity['algorithm'] = self.affinity
+        kwargs['affinity'] = affinity
+        return args, kwargs
 
 
 class MYSCOOP(MPI):
@@ -106,10 +131,10 @@ class MYSCOOP(MPI):
     def __init__(self, options, cmdargs, **kwargs):
         super(MYSCOOP, self).__init__(options, cmdargs, **kwargs)
 
-        # # all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
-        # # TODO : actually decide on wether they are options or not and
-        # #   and change most of the code form self.scoop_X to self.options.scoop_X
-        # #  (except for executable and args)
+        # all SCOOP options are ready can be added on command line ? (add them to RUNTIMEOPTION)
+        # TODO : actually decide on wether they are options or not and
+        #   and change most of the code form self.scoop_X to self.options.scoop_X
+        #  (except for executable and args)
 
         allargs = self.cmdargs[:]
         exe = allargs.pop(0)
@@ -123,8 +148,10 @@ class MYSCOOP(MPI):
         self.scoop_args = getattr(self.options, 'scoop_args', allargs)
         self.scoop_module = getattr(self.options, 'scoop_module', self.SCOOP_WORKER_MODULE_DEFAULT)
 
+        self.scoop_processcontrol = getattr(self.options, 'scoop_processcontrol', 'VSC')
         self.scoop_nice = getattr(self.options, 'scoop_nice', 0)
-        self.scoop_affinity = getattr(self.options, 'scoop_affinity', 'simplesinglecoreworker')
+        self.scoop_affinity = getattr(self.options, 'scoop_affinity', 'basiccore')  # the algorithm
+
         self.scoop_path = getattr(self.options, 'scoop_path', os.getcwd())
 
         # # default broker is first of unique nodes ?
@@ -145,7 +172,7 @@ class MYSCOOP(MPI):
 
         self.scoop_tunnel = getattr(self.options, 'scoop_tunnel', False)
 
-        self.scoop_profile = getattr(self.options, 'scoop_profile', True)
+        self.scoop_profile = getattr(self.options, 'scoop_profile', False)
 
         self.scoop_remote = {}
         self.scoop_workers_free = None
@@ -195,7 +222,7 @@ class MYSCOOP(MPI):
                     self.log.raiseException("scoop_make_executable: failed to locate module %s (default NS %s)" %
                                             (self.scoop_module, self.SCOOP_WORKER_MODULE_DEFAULT_NS))
 
-            # # some mode example runs are in vsc.mympirun.scoop
+            # some mode example runs are in vsc.mympirun.scoop
             self.scoop_executable = "%s.py" % module_fn
             self.log.debug("scoop_make_executable: from scoop_module %s executable %s args %s" % (
                             self.scoop_module, self.scoop_executable, self.scoop_args))
@@ -220,26 +247,8 @@ class MYSCOOP(MPI):
         if self.scoop_infobroker is None:
             self.scoop_infobroker = self.scoop_broker
 
-
-    def scoop_get_origin(self):
-        # TODO remove
-        """origin"""
-        if self.scoop_workers_free == 1:
-            self.log.debug('scoop_get_origin: set origin on')
-            return "--origin"
-
-    def scoop_get_debug(self):
-        # TODO remove
-        """debug"""
-        if self.options.debug or self.scoop_debug:
-            self.log.debug('scoop_get_debug: set debug on')
-            return "--debug"
-
     def scoop_run(self):
         """Run the launcher"""
-
-        # # previous scoop.__main__ main()
-
 
         scoop_app_args = [[(nodename, len(list(group))) for nodename, group in itertools.groupby(self.scoop_hosts)],
                           self.scoop_size,
@@ -253,10 +262,12 @@ class MYSCOOP(MPI):
                           self.scoop_path,
                           self.scoop_debug,
                           self.scoop_nice,
-                          self.scoop_affinity,
                           "other",  # TODO check utils.getEnv(),
                           self.scoop_profile,
-                          self.scoop_pythonpath[0]
+                          self.scoop_pythonpath[0],
+                          # custom
+                          self.scoop_processcontrol,
+                          self.scoop_affinity,
                           ]
         self.log.debug("scoop_run: scoop_app class %s args %s" % (self.SCOOP_APP.__name__, scoop_app_args))
 
