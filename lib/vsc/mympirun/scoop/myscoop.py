@@ -65,8 +65,8 @@ class MyHost(Host):
         c = super(MyHost, self)._WorkerCommand_bootstrap(newworker)
         return c
 
-    def _WorkerCommand_options(self, worker):
-        c = super(MyHost, self)._WorkerCommand_options(worker)
+    def _WorkerCommand_options(self, worker, workerId):
+        c = super(MyHost, self)._WorkerCommand_options(worker, workerId)
         if worker.processcontrol is not None:
             self.log.debug("WorkerCommand_options processcontrol %s" % worker.processcontrol)
             c.extend(['--processcontrol', worker.processcontrol])
@@ -109,7 +109,6 @@ class MYSCOOP(MPI):
 
     SCOOP_WORKER_DIGITS = 5  # # 100k workers
     # # this module used to be "scoop.bootstrap.__main__"
-    SCOOP_BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.__main__'
     SCOOP_WORKER_MODULE_DEFAULT_NS = 'vsc.mympirun.scoop.worker'
     SCOOP_WORKER_MODULE_DEFAULT = 'simple_shell'
 
