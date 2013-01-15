@@ -39,7 +39,7 @@ from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportExcep
 
 _logger = getLogger("MYSCOOP")
 
-# # requires Python 2.6 at least (str.format)
+# requires Python 2.6 at least (str.format)
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
     _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
 
@@ -87,7 +87,7 @@ class MyHost(Host):
         if load_modules is not None:
             mod_load.extend(['module', 'load'])
             for mod_to_load in load_modules:
-                # # check something first?
+                # check something first?
                 mod_load.append(mod_to_load)
             mod_load.append('&&')
 
@@ -145,8 +145,8 @@ class MYSCOOP(MPI):
     """Re-implement the launchScoop class from scoop.__main__"""
     SCOOP_APP = MyScoopApp
 
-    SCOOP_WORKER_DIGITS = 5  # # 100k workers
-    # # this module used to be "scoop.bootstrap.__main__"
+    SCOOP_WORKER_DIGITS = 5  # 100k workers
+    # this module used to be "scoop.bootstrap.__main__"
     SCOOP_WORKER_MODULE_DEFAULT_NS = 'vsc.mympirun.scoop.worker'
     SCOOP_WORKER_MODULE_DEFAULT = 'simple_shell'
 
@@ -194,7 +194,7 @@ class MYSCOOP(MPI):
 
         self.scoop_path = getattr(self.options, 'scoop_path', os.getcwd())
 
-        # # default broker is first of unique nodes ?
+        # default broker is first of unique nodes ?
         self.scoop_broker = getattr(self.options, 'scoop_broker', None)
         self.scoop_brokerport = getattr(self.options, 'scoop_brokerport', None)
 
@@ -269,7 +269,7 @@ class MYSCOOP(MPI):
 
     def scoop_prepare(self):
         """Prepare the scoop parameters and commands"""
-        # # self.mpinodes is the node list to use
+        # self.mpinodes is the node list to use
         if self.scoop_broker is None:
             if self.mpdboot_localhost_interface is None:
                 self.mpdboot_set_localhost_interface()
@@ -281,7 +281,7 @@ class MYSCOOP(MPI):
             self.scoop_hosts = self.mpinodes
 
         if self.scoop_broker is None:
-            # # default broker is first of unique nodes ?
+            # default broker is first of unique nodes ?
             self.scoop_broker = self.uniquenodes[0]
 
         if self.scoop_infobroker is None:
