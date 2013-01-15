@@ -51,6 +51,7 @@ except:
 
 from scoop.__main__ import ScoopApp
 from scoop.launch import Host
+from scoop import utils
 
 class MyHost(Host):
     BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.bootstrap'
@@ -59,6 +60,7 @@ class MyHost(Host):
                                      ['processcontrol', 'affinity',
                                       'variables']
                                      )
+
     def _WorkerCommand_environment(self, worker):
         c = super(MyHost, self)._WorkerCommand_environment(worker)
 
@@ -67,7 +69,7 @@ class MyHost(Host):
 
         return set_variables + c
 
-    def _WorkerCommand_environment_set_variables(self,variables):
+    def _WorkerCommand_environment_set_variables(self, variables):
         # TODO port to env when super(MyHost, self)._WorkerCommand_environment(worker) does this
         shell_template = "export {name}='{value}'"
 
@@ -288,6 +290,9 @@ class MYSCOOP(MPI):
     def scoop_run(self):
         """Run the launcher"""
         vars_to_pass = self.get_pass_variables()
+        # add uniquenodes that are localhost
+        localhosts = self.get_localhosts()
+        utils.localHostnames.extend([hn for hn, ip in localhosts if not hn in utils.localHostnames])
 
         scoop_app_args = [[(nodename, len(list(group))) for nodename, group in itertools.groupby(self.scoop_hosts)],
                           self.scoop_size,
