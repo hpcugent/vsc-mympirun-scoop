@@ -56,8 +56,41 @@ class MyHost(Host):
     BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.bootstrap'
     LAUNCHING_ARGUMENTS = namedtuple(Host.LAUNCHING_ARGUMENTS.__name__,
                                      list(Host.LAUNCHING_ARGUMENTS._fields) +
-                                     ['processcontrol', 'affinity']
+                                     ['processcontrol', 'affinity',
+                                      'variables']
                                      )
+    def _WorkerCommand_environment(self, worker):
+        c = super(MyHost, self)._WorkerCommand_environment(worker)
+
+        set_variables = self._WorkerCommand_environment_set_variables(worker.variables)
+        # TODO do we need the module load when we pass most variables?
+
+        return set_variables + c
+
+    def _WorkerCommand_environment_set_variables(self,variables):
+        # TODO port to env when super(MyHost, self)._WorkerCommand_environment(worker) does this
+        shell_template = "export {name}='{value}'"
+
+        cmd = []
+        for name, value in [(x, os.environ.get(x)) for x in variables if x in os.environ]:
+            txt = shell_template.format(name=name, value=value)
+            cmd.extend([txt, '&&'])
+
+        return cmd
+
+    def _WorkerCommand_environment_load_modules(self):
+        # TODO what is needed here? VSC-tools mympirun-scoop too.
+        load_modules = ['SCOOP']
+        mod_load = []
+        if load_modules is not None:
+            mod_load.extend(['module', 'load'])
+            for mod_to_load in load_modules:
+                # # check something first?
+                mod_load.append(mod_to_load)
+            mod_load.append('&&')
+
+
+        return mod_load
 
     def _WorkerCommand_bootstrap(self, worker):
         # nice will be passed as argument
@@ -89,8 +122,10 @@ class MyScoopApp(ScoopApp):
 
     def __init__(self, *args):
         args = list(args)  # args here is tuple, need to chaneg it (ie remove affintiy arg)
-        self.affinity = args.pop()  # last argument
-        self.processcontrol = args.pop()  # 2nd last argument
+        # remove custom options
+        self.variables_to_pass = args.pop()
+        self.affinity = args.pop()
+        self.processcontrol = args.pop()
         super(MyScoopApp, self).__init__(*args)
 
     def _addWorker_args(self, workerinfo):
@@ -100,6 +135,7 @@ class MyScoopApp(ScoopApp):
         affinity = workerinfo.copy()
         affinity['algorithm'] = self.affinity
         kwargs['affinity'] = affinity
+        kwargs['variables'] = self.variables_to_pass
         return args, kwargs
 
 
@@ -112,6 +148,8 @@ class MYSCOOP(MPI):
     SCOOP_WORKER_MODULE_DEFAULT_NS = 'vsc.mympirun.scoop.worker'
     SCOOP_WORKER_MODULE_DEFAULT = 'simple_shell'
 
+    PASS_VARIABLES_CLASS_PREFIX = ['SCOOP']  # used for anything?
+
     _mpiscriptname_for = ['myscoop']
 
     RUNTIMEOPTION = {'options':{'tunnel':("Activate ssh tunnels to route toward the broker "
@@ -123,6 +161,7 @@ class MYSCOOP(MPI):
                                 'module':("Specifiy SCOOP worker module (to be imported or predefined in %s)" %
                                           SCOOP_WORKER_MODULE_DEFAULT_NS,
                                           "str", "store", SCOOP_WORKER_MODULE_DEFAULT),  # TODO provide list
+                                'profile':("Turn on SCOOP profiling", None, "store_true", False),
                                 },
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
@@ -248,6 +287,7 @@ class MYSCOOP(MPI):
 
     def scoop_run(self):
         """Run the launcher"""
+        vars_to_pass = self.get_pass_variables()
 
         scoop_app_args = [[(nodename, len(list(group))) for nodename, group in itertools.groupby(self.scoop_hosts)],
                           self.scoop_size,
@@ -267,6 +307,7 @@ class MYSCOOP(MPI):
                           # custom
                           self.scoop_processcontrol,
                           self.scoop_affinity,
+                          vars_to_pass,
                           ]
         self.log.debug("scoop_run: scoop_app class %s args %s" % (self.SCOOP_APP.__name__, scoop_app_args))
 
