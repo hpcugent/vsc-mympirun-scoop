@@ -1,5 +1,6 @@
-##
-# Copyright 2012 Stijn De Weirdt
+#
+# Copyright 2012-2013 Ghent University
+# Copyright 2012-2013 Stijn De Weirdt
 #
 # This file is part of VSC-tools,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -21,7 +22,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
-##
+#
 
 usage: myscoop <executable> <args>
 supported options: myscoop -H (and check the SCOOP section)
@@ -31,9 +32,10 @@ This directory contains the myscoop module and some SCOOP example wrapper module
     __main__ : SCOOP bootstrap
 
     workers:
-        sanity: SCOOP sanity tester (eg myscoop --sched=local --scoop_module=sanity 1000)
-        picalc : SCOOP piCalc demo (eg myscoop --sched=local --scoop_module=picalc 100 100 # arg1 = nr_batches, arg2 = batch_size )
+        sanity: SCOOP sanity tester (e.g. myscoop --sched=local --scoop_module=sanity 1000)
+        picalc : SCOOP piCalc demo (e.g. myscoop --sched=local --scoop_module=picalc 100 100 # arg1 = nr_batches, arg2 = batch_size )
         simple_shell : run command, return (ec,output); has SCOOP_COUNTER environment variable
             arg1 is checked for [start:]stop[:step] to determine number of runs
             known issue: lots of output can cause a hang (eg dmesg won't work)
-            eg myscoop --sched=local 100:200 echo '\\\$SCOOP_COUNTER'
+            e.g. myscoop --sched=local 100:200 echo '\$SCOOP_COUNTER'
+

@@ -1,4 +1,4 @@
-##
+#
 # Copyright 2012 Ghent University
 # Copyright 2012 Stijn De Weirdt
 #
@@ -22,5 +22,5 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
-##
+#
 
