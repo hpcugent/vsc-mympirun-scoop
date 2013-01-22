@@ -1,6 +1,6 @@
 ##
-# Copyright 2012 Ghent University
-# Copyright 2012 Stijn De Weirdt
+# Copyright 2012-2013 Ghent University
+# Copyright 2012 -2013Stijn De Weirdt
 #
 # This file is part of VSC-tools,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -32,10 +32,16 @@ from scoop import futures
 
 NAME = 'SCOOP_piCalc'
 
-# A range is used in this function for python3. If you are using python2, a
-# xrange might be more efficient.
+# A range is used in this function for python3. If you are using python2,
+# an xrange might be more efficient.
+try:
+    range_fn = xrange
+except:
+    range_fn = range
+
+
 def test(tries):
-    return sum(hypot(random(), random()) < 1 for i in range(tries))
+    return sum(hypot(random(), random()) < 1 for i in range_fn(tries))
 
 # Calculates pi with a Monte-Carlo method. This function calls the function
 # test "n" times with an argument of "t". Scoop dispatches these
