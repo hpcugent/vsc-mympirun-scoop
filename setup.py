@@ -40,7 +40,7 @@ PACKAGE = {
     'install_requires': ['vsc-processcontrol >= 0.90',
                          'vsc-mympirun >= 3.0.7',
                          'vsc-base >= 0.96',
-                         'scoop >= 0.5.3',
+                         'scoop >= 0.6.0',
                          ],
     'version': '3.0.10',
     'author': [sdw],
