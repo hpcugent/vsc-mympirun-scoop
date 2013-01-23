@@ -32,7 +32,6 @@ Setup for the SCOOP functionality of mympirun
 
 from shared_setup import sdw
 from shared_setup import action_target
-from setup_mympirun import mympirun_vsc_install_scripts
 
 
 
@@ -50,11 +49,8 @@ PACKAGE = {
     'namespace_packages': ['vsc', 'vsc.mympirun'],
     'py_modules': ['vsc.__init__', 'vsc.mympirun.__init__'],
     # 'scripts':['bin/mympirun.py'], ## is installed with vsc-mympirun, including myscoop
-    'cmdclass': {
-        "install_scripts": mympirun_vsc_install_scripts,  # this is required for easy_install for the egg_install_scripts
-    },
 
 }
 
 if __name__ == '__main__':
-    action_target(PACKAGE, extra_sdist=['setup_mympirun.py'])
+    action_target(PACKAGE)
