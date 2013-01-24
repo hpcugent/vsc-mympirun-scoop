@@ -57,7 +57,8 @@ class MyHost(Host):
     BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.bootstrap'
     LAUNCHING_ARGUMENTS = namedtuple(Host.LAUNCHING_ARGUMENTS.__name__,
                                      list(Host.LAUNCHING_ARGUMENTS._fields) +
-                                     ['processcontrol', 'affinity',
+                                     ['freeorigin',
+                                      'processcontrol', 'affinity',
                                       'variables']
                                      )
 
@@ -91,7 +92,6 @@ class MyHost(Host):
                 mod_load.append(mod_to_load)
             mod_load.append('&&')
 
-
         return mod_load
 
     def _WorkerCommand_bootstrap(self, worker):
@@ -103,7 +103,7 @@ class MyHost(Host):
     def _WorkerCommand_options(self, worker, workerId):
         c = super(MyHost, self)._WorkerCommand_options(worker, workerId)
         if worker.processcontrol is not None:
-            self.log.debug("WorkerCommand_options processcontrol %s" % worker.processcontrol)
+            self.log.debug("WorkerCommand_options worker %s processcontrol %s" % (worker.workerNum, worker.processcontrol))
             c.extend(['--processcontrol', worker.processcontrol])
             if worker.nice is not None:
                 self.log.debug("WorkerCommand_options nice %s" % worker.nice)
@@ -128,14 +128,39 @@ class MyScoopApp(ScoopApp):
         self.variables_to_pass = args.pop()
         self.affinity = args.pop()
         self.processcontrol = args.pop()
+        self.freeorigin = args.pop()
         super(MyScoopApp, self).__init__(*args)
 
     def _addWorker_args(self, workerinfo):
         args, kwargs = super(MyScoopApp, self)._addWorker_args(workerinfo)
         # tuple with lots of info
-        kwargs['processcontrol'] = self.processcontrol
+
         affinity = workerinfo.copy()
         affinity['algorithm'] = self.affinity
+
+        # this is passed, but nothing is done with it
+        kwargs['freeorigin'] = False
+        if self.freeorigin:
+            if self.workersLeft == 1:
+                self.log.debug("_addWorker_args: freeorigin mode for origin worker")
+                # this is the origin worker
+                kwargs['freeorigin'] = True
+                # disable the affinity for origin
+                affinity = None
+
+                # TODO: clean this up somehow (eg spread some info on where the origin is)
+                # change the number of workers_on_host for other workers on this host for affinity calculations
+                newargs = []
+                for launching_args in self.hostsConn[-1].workersArguments:
+                    affinitydict = launching_args.affinity.copy()
+                    # no need to adjust 'worker_idx_host', the origin worker is the last one (ie largest idx)
+                    affinitydict['total_workers_host'] -= 1
+                    newargs.append(launching_args._replace(affinity=affinitydict,
+                                                           freeorigin=True,
+                                                           ))
+                self.hostsConn[-1].workersArguments = newargs
+
+        kwargs['processcontrol'] = self.processcontrol
         kwargs['affinity'] = affinity
         kwargs['variables'] = self.variables_to_pass
         return args, kwargs
@@ -164,6 +189,7 @@ class MYSCOOP(MPI):
                                           SCOOP_WORKER_MODULE_DEFAULT_NS,
                                           "str", "store", SCOOP_WORKER_MODULE_DEFAULT),  # TODO provide list
                                 'profile':("Turn on SCOOP profiling", None, "store_true", False),
+                                'freeorigin':("Run the origin worker as an extra process", None, "store_true", False),
                                 },
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
@@ -202,6 +228,7 @@ class MYSCOOP(MPI):
         self.scoop_infoport = getattr(self.options, 'scoop_brokerport', None)
 
         self.scoop_origin = getattr(self.options, 'scoop_origin', False)
+        self.scoop_freeorigin = getattr(self.options, 'scoop_freeorigin', False)
         self.scoop_debug = getattr(self.options, 'scoop_debug', self.options.debug)
 
         if self.scoop_debug:
@@ -294,6 +321,13 @@ class MYSCOOP(MPI):
         localhosts = self.get_localhosts()
         utils.localHostnames.extend([hn for hn, ip in localhosts if not hn in utils.localHostnames])
 
+        # will become the last one
+        origin_idx = 0
+        if self.scoop_freeorigin:
+            # duplicate the first of the host entries
+            self.scoop_hosts.insert(origin_idx, self.scoop_hosts[origin_idx])
+            self.scoop_size += 1
+
         scoop_app_args = [[(nodename, len(list(group))) for nodename, group in itertools.groupby(self.scoop_hosts)],
                           self.scoop_size,
                           self.scoop_verbose,
@@ -310,6 +344,7 @@ class MYSCOOP(MPI):
                           self.scoop_profile,
                           self.scoop_pythonpath[0],
                           # custom
+                          self.scoop_freeorigin,
                           self.scoop_processcontrol,
                           self.scoop_affinity,
                           vars_to_pass,
