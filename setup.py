@@ -49,9 +49,6 @@ PACKAGE = {
     'namespace_packages': ['vsc', 'vsc.mympirun'],
     'py_modules': ['vsc.__init__', 'vsc.mympirun.__init__'],
     # 'scripts':['bin/mympirun.py'], ## is installed with vsc-mympirun, including myscoop
-    'cmdclass': {
-        "install_scripts": mympirun_vsc_install_scripts,  # this is required for easy_install for the egg_install_scripts
-    },
 
 }
 
