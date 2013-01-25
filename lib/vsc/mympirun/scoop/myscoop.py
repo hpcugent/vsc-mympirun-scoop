@@ -116,6 +116,12 @@ class MyHost(Host):
                 self.log.error("nice is set, but no processcontrol")
             if worker.affinity is not None:
                 self.log.error("affinity is set, but no processcontrol")
+
+
+        if worker.workerNum == 1 and worker.freeorigin:
+            self.log.debug("WorkerCommand_options freeorigin set for worker %s" % worker.workerNum)
+            c.append('--freeorigin')
+
         return c
 
 
