@@ -35,6 +35,8 @@ import sys
 import vsc.processcontrol
 from distutils.version import LooseVersion
 from scoop import futures
+from scoop._types import FutureQueue
+from scoop._control import execQueue
 from scoop.bootstrap.__main__ import Bootstrap
 from vsc.mympirun.scoop.worker_utils import set_scoop_env
 from vsc.processcontrol.affinity import what_affinity
@@ -44,6 +46,12 @@ from vsc.processcontrol.priority import what_priority
 class MyBootstrap(Bootstrap):
     def makeParser(self):
         super(MyBootstrap, self).makeParser()
+
+        self.parser.add_argument('--freeorigin',
+                                 help="Freeorigin mode",
+                                 action='store_true',
+                                 default=None
+                                 )
 
         self.parser.add_argument('--processcontrol',
                                  help="Processcontrol mode",
@@ -68,9 +76,28 @@ class MyBootstrap(Bootstrap):
         super(MyBootstrap, self).parse()
 
         # custom
+        self.set_freeorigin()
         self.set_nice()
         self.set_affinity()
         self.set_environment()
+
+    def set_freeorigin(self):
+        """Freeorigin mode
+            prevent origin worker to do any work
+        """
+        if self.args.freeorigin:
+            # TODO this is not part of API, might change in future
+            class FreeOriginFutureQueue(FutureQueue):
+                """Force negative low and hig watermark"""
+                def __init__(self):
+                    super(FutureQueue, self).__init__()
+                    # Set buffering limits on the root worker to a negative value
+                    self.lowwatermark = -1
+                    self.highwatermark = -1
+
+            global execQueue
+            # self.log.debug("set_freeorigin: old execQueue %s"%execQueue)
+            execQueue = FreeOriginFutureQueue()
 
     def set_nice(self):
         """Set the nice/priority level"""
