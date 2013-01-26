@@ -39,3 +39,28 @@ This directory contains the myscoop module and some SCOOP example wrapper module
             known issue: lots of output can cause a hang (eg dmesg won't work)
             e.g. myscoop --sched=local 100:200 echo '\$SCOOP_COUNTER'
 
+
+Run mpi jobs with scoop
+ step 1. create jobscript, use mympirun --sched=local !
+#!/bin/bash
+
+module load ictce
+mympirun --sched=local env |grep I_MPI_PIN_INFO
+
+ step 2a. for external scripts: run it with scoop_freeorigin (and builtin scoop_module simple_shell (the default))
+eg
+myscoop --sched=local --hybrid=2 --scoop_freeorigin ./testmympirun.sh
+this runs on 4 core node in 2 non-root workers with 2 cores each. output is
+ [(0, 'I_MPI_PIN_INFO=2\nI_MPI_PIN_INFO=3\n'), (0, 'I_MPI_PIN_INFO=0\nI_MPI_PIN_INFO=1\n'),
+ (0, 'I_MPI_PIN_INFO=2\nI_MPI_PIN_INFO=3\n'), (0, 'I_MPI_PIN_INFO=1\nI_MPI_PIN_INFO=0\n'),
+ (0, 'I_MPI_PIN_INFO=2\nI_MPI_PIN_INFO=3\n'), (0, 'I_MPI_PIN_INFO=0\nI_MPI_PIN_INFO=1\n'),
+ (0, 'I_MPI_PIN_INFO=3\nI_MPI_PIN_INFO=2\n'), (0, 'I_MPI_PIN_INFO=0\nI_MPI_PIN_INFO=1\n'),
+ (0, 'I_MPI_PIN_INFO=2\nI_MPI_PIN_INFO=3\n'), (0, 'I_MPI_PIN_INFO=0\nI_MPI_PIN_INFO=1\n')]
+
+step 2b. integration with self-written scoop modules that call script in step 1 for mpi calculations:
+in the __main__, add
+    from vsc.mympirun.scoop.worker_utils import fix_freeorigin
+    fix_freeorigin()
+
+  (This is harmless to add it to other code)
+  myscoop --hybrid=2 --scoop_freeorigin /path/to/selfwritten/module

@@ -29,7 +29,7 @@ Small test to print some execution details and statistics
 import os
 import sys
 import time
-from vsc.mympirun.scoop.worker_utils import get_scoop_env
+from vsc.mympirun.scoop.worker_utils import get_scoop_env, fix_freeorigin
 from scoop import futures
 
 try:
@@ -45,12 +45,13 @@ def sanity(counter):
     s_t = time.time()
     worker = get_scoop_env('worker_name')
     origin = get_scoop_env('worker_origin')
+    freeorigin = get_scoop_env('worker_freeorigin')
     delta = time.time() - s_t
     if has_psutil:
         affinity = psutil.Process(os.getpid()).get_cpu_affinity()
     else:
         affinity = None
-    return counter, worker, origin, delta, affinity
+    return counter, worker, origin, delta, affinity, freeorigin
 
 if __name__ == '__main__':
     nr_batches = 1000
@@ -58,6 +59,8 @@ if __name__ == '__main__':
         nr_batches = int(sys.argv[1])
     except:
         pass
+
+    fix_freeorigin()
 
     s_t = time.time()
     res_generator = futures.map(sanity, xrange(nr_batches))
@@ -71,7 +74,7 @@ if __name__ == '__main__':
 
     workers = dict([(x, []) for x in set([y[1] for y in res])])
     for y in res:
-        workers[y[1]].append((y[3],y[4]))
+        workers[y[1]].append((y[3], y[4], "%s/%s" % (y[2], y[5])))
 
     ## TODO use scipy statistics. but you get the point
     ## TODO remove origin worker from stats
@@ -80,7 +83,8 @@ if __name__ == '__main__':
                                                                    max([len(x) for x in workers.values()]),
                                                                    )
     for w in workers:
-        print "  Worker %s nr_batches %s affinity %s" % (w,
+        print "  Worker %s nr_batches %s affinity %s (origin %s)" % (w,
                                                          len(workers[w]),
                                                          workers[w][0][1],
+                                                         workers[w][0][2],
                                                          )
