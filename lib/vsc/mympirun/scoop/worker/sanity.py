@@ -34,9 +34,9 @@ from scoop import futures
 
 try:
     import psutil
-    has_psutil=True
+    HAS_PSUTIL = True
 except:
-    has_psutil = False
+    HAS_PSUTIL = False
 
 NAME = 'sanity'
 _DEBUG = True
@@ -47,7 +47,7 @@ def sanity(counter):
     origin = get_scoop_env('worker_origin')
     freeorigin = get_scoop_env('worker_freeorigin')
     delta = time.time() - s_t
-    if has_psutil:
+    if HAS_PSUTIL:
         affinity = psutil.Process(os.getpid()).get_cpu_affinity()
     else:
         affinity = None

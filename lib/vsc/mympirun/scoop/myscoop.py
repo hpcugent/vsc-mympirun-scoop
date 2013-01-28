@@ -103,14 +103,16 @@ class MyHost(Host):
     def _WorkerCommand_options(self, worker, workerId):
         c = super(MyHost, self)._WorkerCommand_options(worker, workerId)
         if worker.processcontrol is not None:
-            self.log.debug("WorkerCommand_options worker %s processcontrol %s" % (worker.workerNum, worker.processcontrol))
+            self.log.debug("WorkerCommand_options worker %s processcontrol %s" %
+                           (worker.workerNum, worker.processcontrol))
             c.extend(['--processcontrol', worker.processcontrol])
             if worker.nice is not None:
                 self.log.debug("WorkerCommand_options nice %s" % worker.nice)
                 c.extend(['--nice', str(worker.nice)])
             if worker.affinity is not None:
                 self.log.debug("WorkerCommand_options affinity %s" % worker.affinity)
-                c.extend(['--affinity', '{algorithm}:{total_workers_host}:{worker_idx_host}'.format(**worker.affinity)])
+                c.extend(['--affinity',
+                          '{algorithm}:{total_workers_host}:{worker_idx_host}'.format(**worker.affinity)])
         else:
             if worker.nice is not None:
                 self.log.error("nice is set, but no processcontrol")
