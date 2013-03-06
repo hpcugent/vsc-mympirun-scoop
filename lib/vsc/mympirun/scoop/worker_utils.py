@@ -63,10 +63,28 @@ def set_scoop_env(name, value):
     envname = _get_scoop_env_name(name)
     os.environ[envname] = "%s" % value  ## must be string
 
-def get_scoop_env(name):
-    """Get environment variables specific for SCOOP"""
+def get_scoop_env(name, inst=None):
+    """Get environment variables specific for SCOOP
+        If inst is not None, return instance of class inst
+    """
     envname = _get_scoop_env_name(name)
-    return os.environ.get(envname, None)
+    val = os.environ.get(envname, None)
+    if inst is not None:
+        try:
+            val = inst(val)
+        except:
+            val = None
+    return val
+
+def get_scoop_env_bool(name):
+    """Get environment variables specific for SCOOP
+        Return bool
+    """
+    val = get_scoop_env(name)
+    if val is None or val.lower() in ('0','no','false'):
+        return False
+    else:
+        return True
 
 def parse_worker_args(executable=True):
     """Parse the arguments
@@ -99,3 +117,14 @@ def parse_worker_args(executable=True):
     else:
         return start, stop, step
 
+def fix_freeorigin():
+    """Temporary solution to freeorigin mode
+        It's not possible to set this in bootstrap for now
+    """
+    free_origin = get_scoop_env_bool('worker_freeorigin')
+    open('/tmp/k', 'w').write("%s %s" % (free_origin, type(free_origin)))
+    if free_origin:
+        open('/tmp/k', 'wa').write("%s %s" % (free_origin, type(free_origin)))
+        from scoop import _control  # do the import only here
+        _control.execQueue.highwatermark = -1
+        _control.execQueue.lowwatermark = -1

@@ -45,6 +45,12 @@ class MyBootstrap(Bootstrap):
     def makeParser(self):
         super(MyBootstrap, self).makeParser()
 
+        self.parser.add_argument('--freeorigin',
+                                 help="Freeorigin mode",
+                                 action='store_true',
+                                 default=False
+                                 )
+
         self.parser.add_argument('--processcontrol',
                                  help="Processcontrol mode",
                                  action='store',
@@ -68,9 +74,19 @@ class MyBootstrap(Bootstrap):
         super(MyBootstrap, self).parse()
 
         # custom
+        self.set_freeorigin()
         self.set_nice()
         self.set_affinity()
         self.set_environment()
+
+    def set_freeorigin(self):
+        """Freeorigin mode
+            prevent origin worker to do any work
+        """
+        set_scoop_env('worker_freeorigin', int(self.args.freeorigin))
+        if self.args.freeorigin:
+            # for now, code needs to be added to client main module
+            pass
 
     def set_nice(self):
         """Set the nice/priority level"""

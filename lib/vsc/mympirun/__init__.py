@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: latin-1 -*-
-#
-# Copyright 2009-2012 Ghent University
-# Copyright 2009-2012 Stijn De Weirdt
-# Copyright 2012 Andy Georges
+##
+# Copyright 2011-2012 Ghent University
+# Copyright 2011-2012 Jens Timmerman
 #
 # This file is part of VSC-tools,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -25,32 +23,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
-#
+##
 """
-Setup for the SCOOP functionality of mympirun
+Initialize vsc package.
+the vsc namespace is used in different folders allong the system
+so explicitly declare this is also the vsc namespace
 """
+import pkg_resources
+pkg_resources.declare_namespace(__name__)
 
-from shared_setup import sdw
-from shared_setup import action_target
-from shared_setup_mympirun import mympirun_vsc_install_scripts
-
-
-PACKAGE = {
-    'name': 'vsc-mympirun-scoop',
-    'install_requires': ['vsc-processcontrol >= 0.90',
-                         'vsc-mympirun >= 3.1.0',
-                         'vsc-base >= 0.99',
-                         'scoop >= 0.6.0',
-                         ],
-    'version': '3.1.0',
-    'author': [sdw],
-    'maintainer': [sdw],
-    'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker'],
-    'namespace_packages': ['vsc', 'vsc.mympirun'],
-    'py_modules': ['vsc.__init__', 'vsc.mympirun.__init__'],
-    # 'scripts':['bin/mympirun.py'], ## is installed with vsc-mympirun, including myscoop
-
-}
-
-if __name__ == '__main__':
-    action_target(PACKAGE, extra_sdist=['shared_setup_mympirun.py'])

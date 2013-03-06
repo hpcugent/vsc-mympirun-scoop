@@ -29,7 +29,7 @@ SCOOP run of command and args in repeated environment
 """
 import sys
 from vsc.utils.run import run_simple
-from vsc.mympirun.scoop.worker_utils import set_scoop_env, parse_worker_args, make_worker_log
+from vsc.mympirun.scoop.worker_utils import set_scoop_env, parse_worker_args, make_worker_log, fix_freeorigin
 from scoop import futures
 
 NAME = 'simple_shell'
@@ -47,6 +47,8 @@ def worker_run_simple(counter):
 
 if __name__ == '__main__':
     _log = make_worker_log(NAME, debug=_DEBUG)
+
+    fix_freeorigin()
 
     worker_func = worker_run_simple
 
