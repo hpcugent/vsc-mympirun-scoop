@@ -346,7 +346,7 @@ class MYSCOOP(MPI):
                           self.scoop_verbose,
                           [self.scoop_python],
                           self.scoop_broker,
-                          [self.scoop_executable],
+                          self.scoop_executable,
                           self.scoop_args,
                           self.scoop_tunnel,
                           None,  # TODO args.log, deal with fancylogger later
