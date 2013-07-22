@@ -122,9 +122,7 @@ def fix_freeorigin():
         It's not possible to set this in bootstrap for now
     """
     free_origin = get_scoop_env_bool('worker_freeorigin')
-    open('/tmp/k', 'w').write("%s %s" % (free_origin, type(free_origin)))
     if free_origin:
-        open('/tmp/k', 'wa').write("%s %s" % (free_origin, type(free_origin)))
         from scoop import _control  # do the import only here
         _control.execQueue.highwatermark = -1
         _control.execQueue.lowwatermark = -1
