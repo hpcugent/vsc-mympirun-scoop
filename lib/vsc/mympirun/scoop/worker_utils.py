@@ -29,7 +29,7 @@ A collection of functions and constants to use within worker modules
 import os
 import stat
 import sys
-from vsc.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
+from vsc.utils.fancylogger import getLogger, setLogLevelDebug, logToFile, disableDefaultHandlers
 
 SCOOP_ENVIRONMENT_PREFIX = 'SCOOP'
 SCOOP_ENVIRONMENT_SEPARATOR = "_"
@@ -61,7 +61,7 @@ def _get_scoop_env_name(name):
 def set_scoop_env(name, value):
     """Set environment variables specific for SCOOP"""
     envname = _get_scoop_env_name(name)
-    os.environ[envname] = "%s" % value  ## must be string
+    os.environ[envname] = "%s" % value  # # must be string
 
 def get_scoop_env(name, inst=None):
     """Get environment variables specific for SCOOP
@@ -81,7 +81,7 @@ def get_scoop_env_bool(name):
         Return bool
     """
     val = get_scoop_env(name)
-    if val is None or val.lower() in ('0','no','false'):
+    if val is None or val.lower() in ('0', 'no', 'false'):
         return False
     else:
         return True
