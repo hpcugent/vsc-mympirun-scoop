@@ -37,21 +37,17 @@ from vsc.utils.fancylogger import getLogger
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
 
-
 _logger = getLogger("MYSCOOP")
-
 
 # requires Python 2.6 at least (str.format)
 if LooseVersion(".".join(["%s" % x for x in sys.version_info])) < LooseVersion('2.6'):
     _logger.raiseException("MYSCOOP / scoop requires python 2.6 or later", WrongPythonVersionExcpetion)
-
 
 try:
     import scoop
 except:
     _logger.raiseException("MYSCOOP requires the scoop module and scoop requires (amongst others) pyzmq",
                            InitImportException)
-
 
 from scoop.__main__ import ScoopApp
 from scoop.launch import Host
@@ -372,6 +368,3 @@ class MYSCOOP(MPI):
             self.log.exception('scoop_run: error while launching SCOOP subprocesses: {0}'.format(str(e)))
         finally:
             scoop_app.close()
-
-
-
