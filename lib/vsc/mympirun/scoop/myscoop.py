@@ -33,7 +33,7 @@ import os
 import sys
 from collections import namedtuple
 from distutils.version import LooseVersion
-from vsc.fancylogger import getLogger
+from vsc.utils.fancylogger import getLogger
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
 
