@@ -33,7 +33,7 @@ import os
 import sys
 from collections import namedtuple
 from distutils.version import LooseVersion
-from vsc.fancylogger import getLogger
+from vsc.utils.fancylogger import getLogger
 from vsc.mympirun.mpi.mpi import MPI
 from vsc.mympirun.exceptions import WrongPythonVersionExcpetion, InitImportException
 
@@ -52,6 +52,7 @@ except:
 from scoop.__main__ import ScoopApp
 from scoop.launch import Host
 from scoop import utils
+
 
 class MyHost(Host):
     BOOTSTRAP_MODULE = 'vsc.mympirun.scoop.bootstrap'
@@ -202,6 +203,7 @@ class MYSCOOP(MPI):
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
                      }
+
     def __init__(self, options, cmdargs, **kwargs):
         super(MYSCOOP, self).__init__(options, cmdargs, **kwargs)
 
@@ -251,7 +253,6 @@ class MYSCOOP(MPI):
 
         self.scoop_remote = {}
         self.scoop_workers_free = None
-
 
     def main(self):
         """Main method"""
@@ -341,7 +342,7 @@ class MYSCOOP(MPI):
                           self.scoop_verbose,
                           [self.scoop_python],
                           self.scoop_broker,
-                          [self.scoop_executable],
+                          self.scoop_executable,
                           self.scoop_args,
                           self.scoop_tunnel,
                           None,  # TODO args.log, deal with fancylogger later
@@ -367,6 +368,3 @@ class MYSCOOP(MPI):
             self.log.exception('scoop_run: error while launching SCOOP subprocesses: {0}'.format(str(e)))
         finally:
             scoop_app.close()
-
-
-
