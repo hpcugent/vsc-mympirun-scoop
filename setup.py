@@ -45,9 +45,7 @@ PACKAGE = {
     'version': '3.2.0',
     'author': [sdw],
     'maintainer': [sdw],
-    'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker'],
-    'namespace_packages': ['vsc', 'vsc.mympirun'],
-    'py_modules': ['vsc.__init__', 'vsc.mympirun.__init__'],
+    'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker', 'vsc.mympirun', 'vsc'],
     # 'scripts':['bin/mympirun.py'], ## is installed with vsc-mympirun, including myscoop
 
 }
