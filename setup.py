@@ -35,14 +35,16 @@ from shared_setup import action_target
 from shared_setup_mympirun import mympirun_vsc_install_scripts
 
 
+VERSION = '3.2.3'
 PACKAGE = {
     'name': 'vsc-mympirun-scoop',
-    'install_requires': ['vsc-processcontrol >= 0.91',
-                         'vsc-mympirun >= 3.2.0',
-                         'vsc-base >= 1.6',
-                         'scoop >= 0.6.2',
-                         ],
-    'version': '3.2.0',
+    'install_requires': [
+        'vsc-processcontrol >= 0.91',
+        'vsc-mympirun >= %s' % VERSION,
+        'vsc-base >= 1.6',
+        'scoop >= 0.6.2',
+    ],
+    'version': VERSION,
     'author': [sdw],
     'maintainer': [sdw],
     'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker', 'vsc.mympirun', 'vsc'],
