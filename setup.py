@@ -35,7 +35,7 @@ from shared_setup import action_target
 from shared_setup_mympirun import mympirun_vsc_install_scripts
 
 
-VERSION = '3.2.3'
+VERSION = '3.3.0'
 PACKAGE = {
     'name': 'vsc-mympirun-scoop',
     'install_requires': [
@@ -47,9 +47,7 @@ PACKAGE = {
     'version': VERSION,
     'author': [sdw],
     'maintainer': [sdw],
-    'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker'],
-    'namespace_packages': ['vsc', 'vsc.mympirun'],
-    'py_modules': ['vsc.__init__', 'vsc.mympirun.__init__'],
+    'packages': ['vsc.mympirun.scoop', 'vsc.mympirun.scoop.worker', 'vsc.mympirun', 'vsc'],
     # 'scripts':['bin/mympirun.py'], ## is installed with vsc-mympirun, including myscoop
 
 }

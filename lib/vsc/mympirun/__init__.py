@@ -1,7 +1,5 @@
-#!/usr/bin/env python
 ##
-# Copyright 2011-2012 Ghent University
-# Copyright 2011-2012 Jens Timmerman
+# Copyright 2011-2013 Ghent University
 #
 # This file is part of VSC-tools,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -25,10 +23,14 @@
 # along with VSC-tools. If not, see <http://www.gnu.org/licenses/>.
 ##
 """
-Initialize vsc package.
-the vsc namespace is used in different folders allong the system
+initialize vsc.mympirun package.
+the vsc.mympirun namespace is used in different folders allong the system
 so explicitly declare this is also the vsc namespace
-"""
-import pkg_resources
-pkg_resources.declare_namespace(__name__)
 
+@author: Jens Timmerman (Ghent University)
+@author: Stijn De Weirdt (Ghent University)
+"""
+from pkgutil import extend_path
+
+# we're not the only ones in this namespace
+__path__ = extend_path(__path__, __name__)  #@reservedassignment
