@@ -1,6 +1,6 @@
 # vsc-mympirun-scoop
 
-[![Build Status](https://jenkins1.ugent.be/job/vsc-mympirun-scoop/badge/icon)](https://jenkins1.ugent.be/job/vsc-mympirun-scoop/)
+[![Build Status](https://jenkins1.ugent.be/buildStatus/icon?job=vsc-mympirun-scoop-python26)](https://jenkins1.ugent.be/view/VSC%20tools/job/vsc-mympirun-scoop-python26/)
 
 
 Originally created by the HPC team of Ghent University (http://ugent.be/hpc).
