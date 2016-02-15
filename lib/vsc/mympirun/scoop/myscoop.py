@@ -60,7 +60,7 @@ class MyHost(Host):
                                      list(Host.LAUNCHING_ARGUMENTS._fields) +
                                      ['freeorigin',
                                       'processcontrol', 'affinity',
-                                      'variables']
+                                      'variables', 'load_modules']
                                      )
 
     def _WorkerCommand_environment(self, worker):
@@ -69,7 +69,9 @@ class MyHost(Host):
         set_variables = self._WorkerCommand_environment_set_variables(worker.variables)
         # TODO do we need the module load when we pass most variables?
 
-        return set_variables + c
+        load_modules = self._WorkerCommand_environment_load_modules(worker.load_modules)
+
+        return set_variables + load_modules + c
 
     def _WorkerCommand_environment_set_variables(self, variables):
         # TODO port to env when super(MyHost, self)._WorkerCommand_environment(worker) does this
@@ -82,16 +84,10 @@ class MyHost(Host):
 
         return cmd
 
-    def _WorkerCommand_environment_load_modules(self):
-        # TODO what is needed here? VSC-tools mympirun-scoop too.
-        load_modules = ['SCOOP']
+    def _WorkerCommand_environment_load_modules(self, load_modules):
         mod_load = []
-        if load_modules is not None:
-            mod_load.extend(['module', 'load'])
-            for mod_to_load in load_modules:
-                # check something first?
-                mod_load.append(mod_to_load)
-            mod_load.append('&&')
+        if load_modules:
+            mod_load.extend(['module', 'load'] + load_modules + '&&')
 
         return mod_load
 
@@ -134,6 +130,7 @@ class MyScoopApp(ScoopApp):
     def __init__(self, *args):
         args = list(args)  # args here is tuple, need to chaneg it (ie remove affintiy arg)
         # remove custom options
+        self.load_modules = args.pop()
         self.variables_to_pass = args.pop()
         self.affinity = args.pop()
         self.processcontrol = args.pop()
@@ -172,6 +169,7 @@ class MyScoopApp(ScoopApp):
         kwargs['processcontrol'] = self.processcontrol
         kwargs['affinity'] = affinity
         kwargs['variables'] = self.variables_to_pass
+        kwargs['load_modules'] = self.load_modules
         return args, kwargs
 
 
@@ -199,6 +197,7 @@ class MYSCOOP(MPI):
                                           "str", "store", SCOOP_WORKER_MODULE_DEFAULT),  # TODO provide list
                                 'profile':("Turn on SCOOP profiling", None, "store_true", False),
                                 'freeorigin':("Run the origin worker as an extra process", None, "store_true", False),
+                                'load-modules': ("List of modules to load in workers", 'strlist', 'store', []),
                                 },
                      'prefix':'scoop',
                      'description': ('SCOOP options', 'Advanced options specific for SCOOP'),
@@ -240,6 +239,7 @@ class MYSCOOP(MPI):
         self.scoop_origin = getattr(self.options, 'scoop_origin', False)
         self.scoop_freeorigin = getattr(self.options, 'scoop_freeorigin', False)
         self.scoop_debug = getattr(self.options, 'scoop_debug', self.options.debug)
+        self.scoop_load_modules = getattr(self.options, 'scoop_load_modules', [])
 
         if self.scoop_debug:
             scoop_verbose = 2
@@ -357,6 +357,7 @@ class MYSCOOP(MPI):
                           self.scoop_processcontrol,
                           self.scoop_affinity,
                           vars_to_pass,
+                          self.scoop_load_modules,
                           ]
         self.log.debug("scoop_run: scoop_app class %s args %s" % (self.SCOOP_APP.__name__, scoop_app_args))
 
