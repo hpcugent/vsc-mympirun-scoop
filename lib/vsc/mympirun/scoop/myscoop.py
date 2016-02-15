@@ -86,7 +86,7 @@ class MyHost(Host):
 
     def _WorkerCommand_environment_load_modules(self, load_modules):
         mod_load = []
-        if load_modules is not None:
+        if load_modules:
             mod_load.extend(['module', 'load'])
             for mod_to_load in load_modules:
                 # check something first?
