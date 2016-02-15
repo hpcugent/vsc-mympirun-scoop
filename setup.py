@@ -35,7 +35,7 @@ from shared_setup import action_target
 from shared_setup_mympirun import mympirun_vsc_install_scripts
 
 
-VERSION = '3.3.0'
+VERSION = '3.4.0'
 PACKAGE = {
     'name': 'vsc-mympirun-scoop',
     'install_requires': [
