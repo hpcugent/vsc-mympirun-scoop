@@ -87,7 +87,7 @@ class MyHost(Host):
     def _WorkerCommand_environment_load_modules(self, load_modules):
         mod_load = []
         if load_modules:
-            mod_load.extend(['module', 'load'] + load_modules + '&&')
+            mod_load.extend(['module', 'load'] + load_modules + ['&&'])
 
         return mod_load
 
